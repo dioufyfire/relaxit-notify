@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+/app/.env
+/app/.env.*
+!/app/.env.example
+/app/vendor/
+/app/node_modules/
+/app/storage/*.key
+/app/storage/logs/*
+/app/storage/framework/*
+/app/bootstrap/cache/*.php
+/backups/

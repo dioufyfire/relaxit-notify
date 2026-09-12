@@ -1,0 +1,186 @@
+services:
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: relaxit-web
+    restart: unless-stopped
+
+    volumes:
+      - ./app:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+    depends_on:
+      - app
+
+    expose:
+      - "80"
+
+    networks:
+      - frontend
+      - backend
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.relaxit-notify.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.relaxit-notify.entrypoints=websecure"
+      - "traefik.http.routers.relaxit-notify.tls=true"
+      - "traefik.http.routers.relaxit-notify.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.relaxit-notify.loadbalancer.server.port=80"
+
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+
+    container_name: relaxit-app
+    restart: unless-stopped
+
+    working_dir: /var/www/html
+
+    volumes:
+      - ./app:/var/www/html
+
+    networks:
+      - backend
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+
+    container_name: relaxit-worker
+    restart: unless-stopped
+
+    working_dir: /var/www/html
+
+    command: >
+      php artisan queue:work
+      --sleep=3
+      --tries=3
+      --timeout=90
+
+    volumes:
+      - ./app:/var/www/html
+
+    networks:
+      - backend
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+
+    container_name: relaxit-scheduler
+    restart: unless-stopped
+
+    working_dir: /var/www/html
+
+    command: >
+      sh -c "while true;
+      do php artisan schedule:run --verbose --no-interaction;
+      sleep 60;
+      done"
+
+    volumes:
+      - ./app:/var/www/html
+
+    networks:
+      - backend
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: relaxit-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - backend
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: relaxit-redis
+    restart: unless-stopped
+
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - backend
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a",
+          "${REDIS_PASSWORD}",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+networks:
+
+  frontend:
+    driver: bridge
+
+  backend:
+    driver: bridge
+    internal: true
+
+
+volumes:
+
+  postgres_data:
+  redis_data:
