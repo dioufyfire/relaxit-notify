@@ -18,6 +18,7 @@ class NotificationController extends Controller
         $filters = $request->validate(['status' => ['nullable', Rule::in(Notification::STATUSES)]]);
 
         return Inertia::render('Notifications/Index', [
+            'whatsappPilotEnabled' => (bool) config('meta_whatsapp.enabled'),
             'tenant' => $tenant->only('id', 'name', 'code'),
             'filters' => ['status' => $filters['status'] ?? ''],
             'indexUrl' => route('notifications.index', $tenant),

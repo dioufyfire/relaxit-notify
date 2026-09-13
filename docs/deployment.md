@@ -2,7 +2,7 @@
 
 ## Mise à jour depuis le jalon déjà installé
 
-Le compte Super Admin, Globale Santé et les accès existants sont conservés. Ce jalon ajoute la table `notifications` ; les migrations des clés API et du journal sont aussi incluses si elles ne sont pas encore appliquées. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Ne pas changer les `.env` ni `APP_KEY`.
+Le compte Super Admin, Globale Santé et les accès existants sont conservés. Ce jalon ajoute les champs de suivi Meta à `notifications` et inclut sa création si nécessaire ; les migrations des clés API et du journal sont aussi incluses si elles ne sont pas encore appliquées. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Ne pas changer les `.env` ni `APP_KEY`.
 
 Après installation : Clients → Globale Santé → Notifications, Clés API ou Journal d’audit. Créer la clé Dolibarr seulement lorsque vous êtes prêt à conserver son secret et à configurer l’intégration.
 
@@ -30,14 +30,14 @@ Conserver les paramètres et secrets PostgreSQL/Redis actuels. Renseigner `TRUST
 
 ## Récupérer le code avant toute installation
 
-La branche `codex/notifications-api` contient ce jalon et le précédent. Tant que ces changements ne sont pas fusionnés, `main` ne contient pas la version à déployer. Sur le VPS :
+La branche `codex/meta-whatsapp-pilot` contient ce jalon et le précédent. Tant que ces changements ne sont pas fusionnés, `main` ne contient pas la version à déployer. Sur le VPS :
 
 ```bash
 cd /docker/relaxit-notify
 git status --short
 git fetch origin
-git switch codex/notifications-api
-git pull --ff-only origin codex/notifications-api
+git switch codex/meta-whatsapp-pilot
+git pull --ff-only origin codex/meta-whatsapp-pilot
 git log -1 --oneline
 ls -l app/package-lock.json app/app/Console/Commands/BootstrapRelaxit.php docker-compose.install.yml
 ```
@@ -86,7 +86,7 @@ Si une étape échoue, résoudre l’erreur avant de réactiver le site. Si le c
 
 Ouvrir `https://notify.relaxit.pro/login`. Se connecter avec le compte créé, ouvrir Clients puis Globale Santé, sélectionner ce client et vérifier le tableau de bord. Se déconnecter et vérifier qu’une URL privée renvoie à la connexion. Contrôler les cookies de session Secure, HttpOnly et SameSite=Lax dans le navigateur.
 
-Les clés API et le journal d’audit sont disponibles depuis les fiches clients. Leur utilisation est détaillée dans [le guide des clés API](api-keys.md). Le moteur de notifications est disponible ; la connexion Meta, la 2FA et la gestion web des utilisateurs appartiennent aux jalons suivants. Le [guide API des notifications](notifications.md) fournit le format des demandes et les contrôles de file. Aucun envoi WhatsApp n’est déclenché par cette installation.
+Les clés API et le journal d’audit sont disponibles depuis les fiches clients. Leur utilisation est détaillée dans [le guide des clés API](api-keys.md). Le moteur de notifications est disponible ; l’activation du pilote Meta est documentée séparément ; la 2FA et la gestion web des utilisateurs appartiennent aux jalons suivants. Le [guide API des notifications](notifications.md) fournit le format des demandes et les contrôles de file. Les envois restent désactivés par défaut. Pour le pilote Meta, suivre ensuite [la procédure dédiée](meta-whatsapp.md).
 
 ## Contrôler le traitement des notifications
 

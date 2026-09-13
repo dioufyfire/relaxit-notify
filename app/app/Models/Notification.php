@@ -10,7 +10,7 @@ class Notification extends Model
 {
     use HasFactory;
 
-    public const STATUSES = ['pending', 'scheduled', 'queued', 'awaiting_provider', 'blocked'];
+    public const STATUSES = ['pending', 'scheduled', 'queued', 'awaiting_provider', 'blocked', 'sending', 'submitted', 'failed', 'delivery_unknown'];
 
     protected $hidden = ['recipient', 'variables', 'external_reference', 'request_hash', 'idempotency_hash'];
 
@@ -23,6 +23,8 @@ class Notification extends Model
             'schedule_at' => 'immutable_datetime',
             'queued_at' => 'immutable_datetime',
             'prepared_at' => 'immutable_datetime',
+            'send_started_at' => 'immutable_datetime',
+            'submitted_at' => 'immutable_datetime',
         ];
     }
 
@@ -43,6 +45,8 @@ class Notification extends Model
             'schedule_at' => $this->schedule_at?->toISOString(),
             'created_at' => $this->created_at->toISOString(),
             'prepared_at' => $this->prepared_at?->toISOString(),
+            'provider_message_id' => $this->provider_message_id,
+            'submitted_at' => $this->submitted_at?->toISOString(),
         ];
     }
 }
