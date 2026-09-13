@@ -15,6 +15,7 @@ class DashboardController extends Controller
         $tenant = $request->attributes->get('currentTenant');
 
         return Inertia::render('Dashboard', [
+            'whatsappPilotEnabled' => (bool) config('meta_whatsapp.enabled'),
             'notificationCounts' => $tenant ? Notification::where('tenant_id', $tenant->id)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status') : null,
             'tenantCount' => Tenant::accessibleTo($request->user())->count(),
         ]);

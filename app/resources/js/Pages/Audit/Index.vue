@@ -3,6 +3,10 @@ import { Head, Link } from "@inertiajs/vue3";
 import AppLayout from "../../Layouts/AppLayout.vue";
 defineProps({ events: Object, tenant: Object });
 const labels = {
+    "notification.sending": "Envoi WhatsApp commencé",
+    "notification.submitted": "Demande acceptée par Meta",
+    "notification.failed": "Demande refusée par Meta",
+    "notification.delivery_unknown": "Résultat Meta à vérifier",
     "notification.accepted": "Notification enregistrée",
     "notification.awaiting_provider":
         "Notification prête, fournisseur à connecter",

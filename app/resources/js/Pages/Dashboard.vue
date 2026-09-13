@@ -1,7 +1,11 @@
 <script setup>
 import { Head, Link, usePage } from "@inertiajs/vue3";
 import AppLayout from "../Layouts/AppLayout.vue";
-defineProps({ tenantCount: Number, notificationCounts: Object });
+defineProps({
+    tenantCount: Number,
+    notificationCounts: Object,
+    whatsappPilotEnabled: Boolean,
+});
 const page = usePage();
 </script>
 
@@ -82,7 +86,7 @@ const page = usePage();
                     {{
                         notificationCounts
                             ? (notificationCounts.awaiting_provider ?? 0) +
-                              " en attente du fournisseur. Aucun envoi WhatsApp actif à ce stade."
+                              " en attente du fournisseur."
                             : "Sélectionnez un client pour consulter ses notifications."
                     }}
                 </p>

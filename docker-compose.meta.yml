@@ -1,0 +1,9 @@
+# Ajouter cet override au Compose de base pour autoriser uniquement le worker à sortir.
+services:
+  worker:
+    networks:
+      - backend
+      - meta_egress
+networks:
+  meta_egress:
+    driver: bridge

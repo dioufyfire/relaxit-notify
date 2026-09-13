@@ -6,13 +6,18 @@ defineProps({
     tenant: Object,
     filters: Object,
     indexUrl: String,
+    whatsappPilotEnabled: Boolean,
 });
 const labels = {
     pending: "À traiter",
     scheduled: "Planifiée",
     queued: "Traitement en attente",
     awaiting_provider: "En attente du fournisseur",
-    blocked: "Bloquée — client désactivé",
+    blocked: "Bloquée",
+    sending: "Envoi en cours",
+    submitted: "Acceptée par Meta",
+    failed: "Refusée par Meta",
+    delivery_unknown: "Résultat à vérifier",
 };
 const date = (value) =>
     value ? new Date(value).toLocaleString("fr-FR") : "Dès que possible";
@@ -38,8 +43,11 @@ const date = (value) =>
             </button>
         </div>
         <div class="notice">
-            La connexion WhatsApp sera activée au prochain jalon. Les demandes
-            sont enregistrées et préparées, aucun message n’est encore envoyé.
+            {{
+                whatsappPilotEnabled
+                    ? "Pilote WhatsApp activé pour le client, le destinataire et le modèle configurés. « Acceptée par Meta » ne confirme pas la livraison sur le téléphone."
+                    : "Les envois WhatsApp sont désactivés. Les demandes restent enregistrées et préparées."
+            }}
         </div>
         <section class="panel">
             <div class="section-heading notification-filter">
@@ -96,6 +104,9 @@ const date = (value) =>
                         labels[notification.status] ?? notification.status
                     }}</span>
                     <h3>{{ notification.template }}</h3>
+                    <p v-if="notification.error_code" class="muted">
+                        Code de suivi : {{ notification.error_code }}
+                    </p>
                     <p>
                         {{ notification.application }} · WhatsApp ·
                         {{ notification.recipient_masked }}

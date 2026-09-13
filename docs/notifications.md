@@ -1,6 +1,6 @@
 # API de notifications — jalon 2
 
-Ce jalon implémente la réception, la planification et la préparation des notifications. Aucun appel Meta, SMS, email ni aucune facturation n’est effectué. Le seul canal accepté initialement est `whatsapp` ; le modèle de notification est indépendant du futur fournisseur.
+Ce jalon implémente la réception, la planification et la préparation des notifications. Les envois restent désactivés par défaut. Le [pilote Meta](meta-whatsapp.md) permet un envoi contrôlé après configuration ; aucun SMS, email ni aucune facturation n’est effectué. Le seul canal accepté initialement est `whatsapp` ; le modèle de notification est indépendant du futur fournisseur.
 
 ## Authentification et périmètre
 
@@ -82,7 +82,11 @@ La protection s’appuie sur un verrou transactionnel et une contrainte unique P
 | scheduled | Attend la date demandée. |
 | queued | Publication dans Redis tentée ; attend le worker ou une reprise. |
 | awaiting_provider | Traitée par le worker, attend la future connexion du fournisseur. Aucun envoi. |
-| blocked | Client désactivé au moment du traitement ; `error_code: tenant_inactive`. |
+| blocked | Traitement interdit : client désactivé ou configuration/restrictions du pilote. Voir `error_code`. |
+| sending | Appel Meta commencé ; aucun nouvel appel automatique pour cette demande. |
+| submitted | Demande acceptée par Meta ; ne confirme pas la livraison. |
+| failed | Refus HTTP Meta ; aucun renvoi automatique. |
+| delivery_unknown | Résultat incertain à vérifier, aucun renvoi automatique. |
 
 Une réactivation du client ne relance pas automatiquement une demande bloquée. Aucun bouton de renvoi, d’annulation ni aucun envoi automatique des demandes `awaiting_provider` n’existe dans ce jalon.
 

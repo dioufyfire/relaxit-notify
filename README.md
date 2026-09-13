@@ -30,3 +30,5 @@ docker run --rm -v "$PWD/app:/app" -w /app node:22-alpine sh -c 'npm ci && npm r
 Les tests utilisent une stack distincte, jamais les bases ou volumes de production. Les fichiers `.env`, dépendances et assets compilés ne sont pas versionnés. Laravel Boost est installé uniquement comme dépendance de développement.
 
 Le moteur de notifications est décrit dans [le guide API](docs/notifications.md) : réception idempotente, planification, file Redis et suivi par client, avant connexion Meta.
+
+Le [pilote Meta WhatsApp](docs/meta-whatsapp.md) ajoute un envoi contrôlé, désactivé par défaut, avec destinataire et modèle limités.
