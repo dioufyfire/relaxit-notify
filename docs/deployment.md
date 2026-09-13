@@ -22,14 +22,37 @@ SESSION_SAME_SITE=lax
 
 Conserver les paramètres et secrets PostgreSQL/Redis actuels. Renseigner `TRUSTED_PROXIES` pour que les limites de connexion utilisent les adresses des visiteurs. Cette variable accepte une liste séparée par des virgules des adresses/CIDR des proxies réellement utilisés, sans faire confiance à toutes les adresses. En production, les URL sont générées en HTTPS si `APP_URL` utilise HTTPS.
 
+## Récupérer le code avant toute installation
+
+Tant que la demande de fusion n° 1 n’est pas fusionnée, `main` ne contient pas ce jalon. Sur le VPS :
+
+```bash
+cd /docker/relaxit-notify
+git status --short
+git fetch origin
+git switch codex/auth-tenants-rbac
+git pull --ff-only origin codex/auth-tenants-rbac
+git log -1 --oneline
+ls -l app/package-lock.json app/app/Console/Commands/BootstrapRelaxit.php docker-compose.install.yml
+```
+
+Si Git signale des modifications locales ou refuse le changement de branche, les conserver et résoudre le conflit avant de poursuivre ; ne pas utiliser de reset forcé. Les `.env` ignorés restent en place. Après fusion du jalon, il est aussi possible de déployer `main` à jour.
+
+Les trois fichiers du dernier contrôle doivent exister. L’absence de `package-lock.json` ou de `BootstrapRelaxit.php` indique une mauvaise révision ou un mauvais dossier : ne pas contourner cela avec `npm install` ou en installant Faker en production.
+
 ## Installation
 
-Récupérer la branche livrée après revue, puis depuis la racine du projet :
+Exécuter les commandes dans l’ordre, depuis `/docker/relaxit-notify`, et **s’arrêter dès la première erreur**.
+
+Le service `app` est connecté uniquement au réseau `backend` avec `internal: true`. Il ne peut pas télécharger les dépendances. Le fichier `docker-compose.install.yml` utilise le même Dockerfile PHP 8.4 dans un conteneur temporaire, sans port publié, sur un réseau bridge avec accès sortant. Composer y télécharge les dépendances avec `--no-scripts` ; les étapes Laravel sont ensuite exécutées dans `app`, qui peut joindre PostgreSQL et Redis.
+
+Conserver une sauvegarde PostgreSQL récente avant les migrations.
 
 ```bash
 docker compose exec app php artisan down
-docker compose exec app composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-docker run --rm -v "$PWD/app:/app" -w /app node:22-alpine sh -c 'npm ci && npm run build'
+docker compose -p relaxit-notify-install -f docker-compose.install.yml run --build --rm installer
+docker compose exec app composer dump-autoload --no-dev --optimize --no-interaction
+docker run --rm --mount "type=bind,src=$PWD/app,dst=/app" -w /app node:22-alpine sh -c 'test -f package-lock.json && npm ci && npm run build'
 docker compose exec app php artisan optimize:clear
 docker compose exec app php artisan migrate --force
 docker compose exec app php artisan db:seed --force
@@ -48,6 +71,7 @@ docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cac
 docker compose restart app worker scheduler
 docker compose restart web
 docker compose exec app php artisan up
+docker compose -p relaxit-notify-install -f docker-compose.install.yml down
 ```
 
 Si une étape échoue, résoudre l’erreur avant de réactiver le site. Si le code est revenu à sa révision précédente, réinstaller ses dépendances et reconstruire ses assets avant `up`. Les migrations de ce jalon ajoutent des tables/colonnes ; éviter leur rollback après création des comptes et appartenances, car il supprimerait ces données.
@@ -68,3 +92,10 @@ docker compose -f docker-compose.test.yml down
 ```
 
 Cette stack utilise PostgreSQL 16 et Redis 7 dédiés, sans montage des volumes de production. Ne pas lancer les tests contre la base de production.
+
+## Comprendre les erreurs de la première tentative
+
+- `Could not resolve host: repo.packagist.org` dans `app` : le réseau backend est interne. Utiliser le conteneur d’installation ci-dessus. Si la résolution échoue aussi dans ce conteneur, il faut diagnostiquer le DNS/la sortie réseau du VPS, sans désactiver la vérification TLS.
+- `npm ci` sans `package-lock.json` : le code du jalon n’est pas récupéré, ou le montage pointe vers un autre dossier. Le verrou npm est versionné dans `app/package-lock.json`.
+- `Database\Factories\fake()` pendant le seeding : l’ancien `DatabaseSeeder` appelle encore une factory de démonstration alors que `--no-dev` exclut Faker. Le nouveau seeder crée uniquement `GLOBALE_SANTE`.
+- Aucun namespace `relaxit` : vérifier la présence du nouveau fichier de commande, puis l’autoload Composer et `php artisan optimize:clear`.
