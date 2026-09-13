@@ -2,24 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        Tenant::firstOrCreate(['code' => 'GLOBALE_SANTE'], [
+            'name' => 'Globale Santé',
+            'address' => 'Lot N°30 25615 Dakar Fann',
+            'phone' => '+221 33 860 81 81',
         ]);
     }
 }
