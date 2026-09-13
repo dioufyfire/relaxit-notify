@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+app/vendor
+app/node_modules
+app/storage/logs
+app/storage/framework
+backups

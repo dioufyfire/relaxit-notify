@@ -1,0 +1,11 @@
+# Installation des dépendances uniquement. Aucun port publié et aucun service de données.
+# Le réseau bridge par défaut autorise les téléchargements sortants.
+services:
+  installer:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./app:/var/www/html
+    command: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
