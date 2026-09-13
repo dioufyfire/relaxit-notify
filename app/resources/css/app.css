@@ -947,3 +947,48 @@ input[aria-invalid="true"] {
         gap: 10px;
     }
 }
+
+.notification-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 0;
+    border-bottom: 1px solid #e5ece8;
+}
+.notification-row h3 {
+    margin: 12px 0 6px;
+    overflow-wrap: anywhere;
+}
+.notification-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: right;
+}
+.notification-reference {
+    overflow-wrap: anywhere;
+}
+.notification-empty {
+    padding: 32px 0;
+}
+.notification-filter select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d4dfd9;
+    border-radius: 8px;
+    background: white;
+    color: inherit;
+    font: inherit;
+}
+@media (max-width: 700px) {
+    .notification-row {
+        flex-direction: column;
+    }
+    .notification-dates {
+        text-align: left;
+    }
+    .notification-filter {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}

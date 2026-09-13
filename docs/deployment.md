@@ -1,10 +1,10 @@
-# Déployer RelaxIT Notify — authentification, clés API et audit
+# Déployer RelaxIT Notify — authentification, clés API, audit et notifications
 
 ## Mise à jour depuis le jalon déjà installé
 
-Le compte Super Admin, Globale Santé et les accès existants sont conservés. La nouvelle migration ajoute `api_keys` et `audit_events`. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Ne pas changer les `.env` ni `APP_KEY`.
+Le compte Super Admin, Globale Santé et les accès existants sont conservés. Ce jalon ajoute la table `notifications` ; les migrations des clés API et du journal sont aussi incluses si elles ne sont pas encore appliquées. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Ne pas changer les `.env` ni `APP_KEY`.
 
-Après installation : Clients → Globale Santé → Clés API, puis Journal d’audit. Créer la clé Dolibarr seulement lorsque vous êtes prêt à conserver son secret et à configurer l’intégration.
+Après installation : Clients → Globale Santé → Notifications, Clés API ou Journal d’audit. Créer la clé Dolibarr seulement lorsque vous êtes prêt à conserver son secret et à configurer l’intégration.
 
 ## Préparation
 
@@ -30,14 +30,14 @@ Conserver les paramètres et secrets PostgreSQL/Redis actuels. Renseigner `TRUST
 
 ## Récupérer le code avant toute installation
 
-La branche `codex/api-keys-audit` contient ce jalon et le précédent. Tant que ces changements ne sont pas fusionnés, `main` ne contient pas la version à déployer. Sur le VPS :
+La branche `codex/notifications-api` contient ce jalon et le précédent. Tant que ces changements ne sont pas fusionnés, `main` ne contient pas la version à déployer. Sur le VPS :
 
 ```bash
 cd /docker/relaxit-notify
 git status --short
 git fetch origin
-git switch codex/api-keys-audit
-git pull --ff-only origin codex/api-keys-audit
+git switch codex/notifications-api
+git pull --ff-only origin codex/notifications-api
 git log -1 --oneline
 ls -l app/package-lock.json app/app/Console/Commands/BootstrapRelaxit.php docker-compose.install.yml
 ```
@@ -86,7 +86,22 @@ Si une étape échoue, résoudre l’erreur avant de réactiver le site. Si le c
 
 Ouvrir `https://notify.relaxit.pro/login`. Se connecter avec le compte créé, ouvrir Clients puis Globale Santé, sélectionner ce client et vérifier le tableau de bord. Se déconnecter et vérifier qu’une URL privée renvoie à la connexion. Contrôler les cookies de session Secure, HttpOnly et SameSite=Lax dans le navigateur.
 
-Les clés API et le journal d’audit sont disponibles depuis les fiches clients. Leur utilisation est détaillée dans [le guide des clés API](api-keys.md). Les notifications, la 2FA et la gestion web des utilisateurs appartiennent aux jalons suivants. Aucun envoi WhatsApp n’est déclenché par cette installation.
+Les clés API et le journal d’audit sont disponibles depuis les fiches clients. Leur utilisation est détaillée dans [le guide des clés API](api-keys.md). Le moteur de notifications est disponible ; la connexion Meta, la 2FA et la gestion web des utilisateurs appartiennent aux jalons suivants. Le [guide API des notifications](notifications.md) fournit le format des demandes et les contrôles de file. Aucun envoi WhatsApp n’est déclenché par cette installation.
+
+## Contrôler le traitement des notifications
+
+Le scheduler publie les demandes arrivées à échéance dans Redis chaque minute (500 au maximum par passage). Le worker traite la file Redis `default`. Vérifier `QUEUE_CONNECTION=redis` et conserver la même valeur `REDIS_QUEUE` dans app, worker et scheduler si vous la personnalisez. Aucune nouvelle connexion réseau ni aucun secret Meta ne sont nécessaires à ce jalon.
+
+```bash
+docker compose exec app php artisan schedule:list
+docker compose exec app php artisan relaxit:queue-notifications
+docker compose ps
+docker compose logs worker scheduler --tail=50
+```
+
+Une demande immédiate passe de `queued` à `awaiting_provider`. Cela signifie « prête pour le fournisseur », jamais « envoyée ». Les demandes planifiées attendent leur date ; si Redis perd une publication, le scheduler la republie après un délai de cinq minutes. Le fournisseur sera connecté dans un jalon distinct. Ne pas purger la table `notifications` : elle conserve également la protection contre les doublons.
+
+Les destinataires, variables et références externes sont chiffrés avec `APP_KEY`. Sa sauvegarde est indispensable pour relire ces données. Ne pas régénérer cette clé lors d’un déploiement. Une future rotation devra traiter le chiffrement et les empreintes d’idempotence.
 
 ## Tests isolés
 
