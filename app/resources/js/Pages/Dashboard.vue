@@ -70,8 +70,8 @@ const page = usePage();
                 <span class="eyebrow">LA SUITE SE PRÉPARE</span>
                 <h3>Vos communications, bientôt ici.</h3>
                 <p class="muted">
-                    Messages, consommation et accès API seront disponibles lors
-                    des prochains jalons.
+                    Messages et consommation seront disponibles lors des
+                    prochains jalons.
                 </p>
             </div>
             <span class="badge">À venir</span>

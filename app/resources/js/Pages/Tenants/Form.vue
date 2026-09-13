@@ -6,6 +6,8 @@ const props = defineProps({
     canUpdate: Boolean,
     saveUrl: String,
     selectUrl: String,
+    apiKeysUrl: String,
+    auditUrl: String,
 });
 const page = usePage();
 const form = useForm({
@@ -49,6 +51,14 @@ const fields = [
                 as="button"
                 class="primary"
                 >Travailler avec ce client →</Link
+            >
+        </div>
+        <div class="key-actions section-links">
+            <Link v-if="apiKeysUrl" :href="apiKeysUrl" class="secondary"
+                >Clés API →</Link
+            >
+            <Link v-if="auditUrl" :href="auditUrl" class="secondary"
+                >Journal d’audit →</Link
             >
         </div>
         <section class="panel form-panel">

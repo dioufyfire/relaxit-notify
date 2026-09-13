@@ -16,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        RateLimiter::for('api-entry', fn (Request $request) => Limit::perMinute(120)->by('api-ip:'.$request->ip()));
+
         RateLimiter::for('login', function (Request $request): array {
             $email = $request->input('email');
             $email = is_string($email) ? mb_strtolower(trim($email)) : '';
