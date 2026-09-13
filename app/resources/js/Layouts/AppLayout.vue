@@ -25,6 +25,14 @@ const page = usePage();
                     :class="{ active: page.url.startsWith('/tenants') }"
                     ><span aria-hidden="true">▦</span> Clients</Link
                 >
+                <Link
+                    v-if="page.props.urls.apiKeys"
+                    :href="page.props.urls.apiKeys"
+                    ><span aria-hidden="true">⌘</span> Clés API</Link
+                >
+                <Link v-if="page.props.urls.audit" :href="page.props.urls.audit"
+                    ><span aria-hidden="true">≡</span> Journal d’audit</Link
+                >
             </nav>
             <div class="sidebar-note">
                 <span class="status-dot"></span> Votre plateforme grandit

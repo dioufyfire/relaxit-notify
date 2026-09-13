@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTenantRequest;
 use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
+use App\Services\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,7 +37,12 @@ class TenantController extends Controller
 
     public function store(StoreTenantRequest $request): RedirectResponse
     {
-        $tenant = Tenant::create($request->validated());
+        $tenant = DB::transaction(function () use ($request): Tenant {
+            $tenant = Tenant::create($request->validated());
+            Audit::record('tenant.created', $tenant, $request->user());
+
+            return $tenant;
+        });
 
         return to_route('tenants.show', $tenant)->with('success', 'Client créé.');
     }
@@ -49,12 +56,21 @@ class TenantController extends Controller
             'canUpdate' => Gate::allows('update', $tenant),
             'saveUrl' => route('tenants.update', $tenant),
             'selectUrl' => route('tenants.select', $tenant),
+            'apiKeysUrl' => Gate::allows('viewApiKeys', $tenant) ? route('api-keys.index', $tenant) : null,
+            'auditUrl' => Gate::allows('viewAudit', $tenant) ? route('tenants.audit', $tenant) : null,
         ]);
     }
 
     public function update(UpdateTenantRequest $request, Tenant $tenant): RedirectResponse
     {
-        $tenant->update($request->validated());
+        DB::transaction(function () use ($request, $tenant): void {
+            $tenant->fill($request->validated());
+            $fields = array_keys($tenant->getDirty());
+            $tenant->save();
+            if ($fields !== []) {
+                Audit::record('tenant.updated', $tenant, $request->user(), ['fields' => $fields]);
+            }
+        });
 
         return to_route('tenants.show', $tenant)->with('success', 'Coordonnées enregistrées.');
     }
@@ -62,6 +78,7 @@ class TenantController extends Controller
     public function select(Request $request, Tenant $tenant): RedirectResponse
     {
         Gate::authorize('view', $tenant);
+        Audit::record('tenant.selected', $tenant, $request->user());
         $request->session()->put('tenant_id', $tenant->id);
         $request->session()->regenerate();
 

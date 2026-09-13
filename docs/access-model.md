@@ -23,3 +23,7 @@ Le tenant sélectionné est conservé en session. Chaque requête le résout à 
 ## Initialisation
 
 Le seeder crée `GLOBALE_SANTE` sans remplacer les données existantes. Une commande interactive crée le premier Super Admin ; aucun mot de passe par défaut, aucune inscription publique et aucune promotion silencieuse d’un compte existant.
+
+## Clés API et audit
+
+Le Super Admin et l’Admin Client gèrent les clés de leurs tenants autorisés. Le Support consulte les métadonnées sans gérer les clés. Le journal global est réservé aux rôles RelaxIT ; le journal d’un tenant est accessible à son Admin Client et aux rôles RelaxIT. User Client et Read Only n’accèdent ni aux clés ni au journal. Le contexte d’API est dérivé de la clé et est indépendant du tenant de la session web.

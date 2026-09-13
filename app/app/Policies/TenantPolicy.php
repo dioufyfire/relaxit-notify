@@ -15,6 +15,22 @@ class TenantPolicy
             && ($user->platform_role !== null || $user->roleIn($tenant) !== null);
     }
 
+    public function viewApiKeys(User $user, Tenant $tenant): bool
+    {
+        return $this->view($user, $tenant)
+            && ($user->platform_role !== null || $user->roleIn($tenant) === TenantRole::Admin);
+    }
+
+    public function manageApiKeys(User $user, Tenant $tenant): bool
+    {
+        return $this->update($user, $tenant);
+    }
+
+    public function viewAudit(User $user, Tenant $tenant): bool
+    {
+        return $this->viewApiKeys($user, $tenant);
+    }
+
     public function create(User $user): bool
     {
         return $user->is_active && $user->platform_role === PlatformRole::SuperAdmin;

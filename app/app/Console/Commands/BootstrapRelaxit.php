@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\PlatformRole;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Audit;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +73,7 @@ class BootstrapRelaxit extends Command
                 $user = new User(['name' => $name, 'email' => $email, 'password' => $password]);
                 $user->platform_role = PlatformRole::SuperAdmin;
                 $user->save();
+                Audit::record('platform.admin_created', actor: $user);
             });
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());

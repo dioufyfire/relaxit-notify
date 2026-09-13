@@ -1,4 +1,10 @@
-# Déployer le jalon authentification et tenants
+# Déployer RelaxIT Notify — authentification, clés API et audit
+
+## Mise à jour depuis le jalon déjà installé
+
+Le compte Super Admin, Globale Santé et les accès existants sont conservés. La nouvelle migration ajoute `api_keys` et `audit_events`. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Ne pas changer les `.env` ni `APP_KEY`.
+
+Après installation : Clients → Globale Santé → Clés API, puis Journal d’audit. Créer la clé Dolibarr seulement lorsque vous êtes prêt à conserver son secret et à configurer l’intégration.
 
 ## Préparation
 
@@ -24,14 +30,14 @@ Conserver les paramètres et secrets PostgreSQL/Redis actuels. Renseigner `TRUST
 
 ## Récupérer le code avant toute installation
 
-Tant que la demande de fusion n° 1 n’est pas fusionnée, `main` ne contient pas ce jalon. Sur le VPS :
+La branche `codex/api-keys-audit` contient ce jalon et le précédent. Tant que ces changements ne sont pas fusionnés, `main` ne contient pas la version à déployer. Sur le VPS :
 
 ```bash
 cd /docker/relaxit-notify
 git status --short
 git fetch origin
-git switch codex/auth-tenants-rbac
-git pull --ff-only origin codex/auth-tenants-rbac
+git switch codex/api-keys-audit
+git pull --ff-only origin codex/api-keys-audit
 git log -1 --oneline
 ls -l app/package-lock.json app/app/Console/Commands/BootstrapRelaxit.php docker-compose.install.yml
 ```
@@ -80,7 +86,7 @@ Si une étape échoue, résoudre l’erreur avant de réactiver le site. Si le c
 
 Ouvrir `https://notify.relaxit.pro/login`. Se connecter avec le compte créé, ouvrir Clients puis Globale Santé, sélectionner ce client et vérifier le tableau de bord. Se déconnecter et vérifier qu’une URL privée renvoie à la connexion. Contrôler les cookies de session Secure, HttpOnly et SameSite=Lax dans le navigateur.
 
-Les modules notifications, clés API, audit complet, 2FA et gestion web des utilisateurs appartiennent aux jalons suivants. Aucun envoi WhatsApp n’est déclenché par cette installation.
+Les clés API et le journal d’audit sont disponibles depuis les fiches clients. Leur utilisation est détaillée dans [le guide des clés API](api-keys.md). Les notifications, la 2FA et la gestion web des utilisateurs appartiennent aux jalons suivants. Aucun envoi WhatsApp n’est déclenché par cette installation.
 
 ## Tests isolés
 
