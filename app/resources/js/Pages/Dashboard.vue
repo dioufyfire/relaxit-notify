@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, usePage } from "@inertiajs/vue3";
 import AppLayout from "../Layouts/AppLayout.vue";
-defineProps({ tenantCount: Number });
+defineProps({ tenantCount: Number, notificationCounts: Object });
 const page = usePage();
 </script>
 
@@ -65,16 +65,34 @@ const page = usePage();
             </section>
         </div>
         <section class="panel next-panel">
-            <div class="next-icon" aria-hidden="true">✳</div>
+            <div class="next-icon" aria-hidden="true">↗</div>
             <div>
-                <span class="eyebrow">LA SUITE SE PRÉPARE</span>
-                <h3>Vos communications, bientôt ici.</h3>
+                <span class="eyebrow">VOS NOTIFICATIONS</span>
+                <h3>
+                    {{
+                        notificationCounts
+                            ? Object.values(notificationCounts).reduce(
+                                  (total, value) => total + Number(value),
+                                  0,
+                              ) + " demande(s) enregistrée(s)"
+                            : "Suivez vos demandes."
+                    }}
+                </h3>
                 <p class="muted">
-                    Messages et consommation seront disponibles lors des
-                    prochains jalons.
+                    {{
+                        notificationCounts
+                            ? (notificationCounts.awaiting_provider ?? 0) +
+                              " en attente du fournisseur. Aucun envoi WhatsApp actif à ce stade."
+                            : "Sélectionnez un client pour consulter ses notifications."
+                    }}
                 </p>
             </div>
-            <span class="badge">À venir</span>
+            <Link
+                v-if="page.props.urls.notifications"
+                :href="page.props.urls.notifications"
+                class="secondary"
+                >Consulter →</Link
+            >
         </section>
     </AppLayout>
 </template>

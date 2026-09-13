@@ -22,8 +22,18 @@ const page = usePage();
                 >
                 <Link
                     :href="page.props.urls.tenants"
-                    :class="{ active: page.url.startsWith('/tenants') }"
+                    :class="{
+                        active:
+                            page.url.startsWith('/tenants') &&
+                            !page.url.includes('/notifications'),
+                    }"
                     ><span aria-hidden="true">▦</span> Clients</Link
+                >
+                <Link
+                    v-if="page.props.urls.notifications"
+                    :href="page.props.urls.notifications"
+                    :class="{ active: page.url.includes('/notifications') }"
+                    ><span aria-hidden="true">↗</span> Notifications</Link
                 >
                 <Link
                     v-if="page.props.urls.apiKeys"

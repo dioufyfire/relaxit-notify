@@ -7,6 +7,7 @@ const props = defineProps({
     saveUrl: String,
     selectUrl: String,
     apiKeysUrl: String,
+    notificationsUrl: String,
     auditUrl: String,
 });
 const page = usePage();
@@ -54,6 +55,12 @@ const fields = [
             >
         </div>
         <div class="key-actions section-links">
+            <Link
+                v-if="notificationsUrl"
+                :href="notificationsUrl"
+                class="secondary"
+                >Notifications →</Link
+            >
             <Link v-if="apiKeysUrl" :href="apiKeysUrl" class="secondary"
                 >Clés API →</Link
             >

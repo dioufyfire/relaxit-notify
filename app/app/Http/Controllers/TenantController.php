@@ -56,6 +56,7 @@ class TenantController extends Controller
             'canUpdate' => Gate::allows('update', $tenant),
             'saveUrl' => route('tenants.update', $tenant),
             'selectUrl' => route('tenants.select', $tenant),
+            'notificationsUrl' => route('notifications.index', $tenant),
             'apiKeysUrl' => Gate::allows('viewApiKeys', $tenant) ? route('api-keys.index', $tenant) : null,
             'auditUrl' => Gate::allows('viewAudit', $tenant) ? route('tenants.audit', $tenant) : null,
         ]);

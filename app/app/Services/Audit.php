@@ -15,7 +15,7 @@ class Audit
         $event->actor_id = $actor?->id;
         $event->action = $action;
         $event->ip_address = app()->runningInConsole() ? null : request()->ip();
-        $event->metadata = array_intersect_key($metadata, array_flip(['key_id', 'replacement_key_id', 'application', 'fields']));
+        $event->metadata = array_intersect_key($metadata, array_flip(['key_id', 'replacement_key_id', 'application', 'fields', 'notification_id']));
         $event->created_at = now();
         $event->save();
     }

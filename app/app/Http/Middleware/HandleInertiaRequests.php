@@ -27,6 +27,7 @@ class HandleInertiaRequests extends Middleware
                 'login' => route('login'), 'logout' => route('logout'),
                 'dashboard' => route('dashboard'), 'tenants' => route('tenants.index'),
                 'tenantCreate' => route('tenants.create'),
+                'notifications' => $tenant ? route('notifications.index', $tenant) : null,
                 'apiKeys' => $tenant && $user?->can('viewApiKeys', $tenant) ? route('api-keys.index', $tenant) : null,
                 'audit' => $user?->platform_role !== null && $user ? route('audit.index') : ($tenant && $user?->can('viewAudit', $tenant) ? route('tenants.audit', $tenant) : null),
             ],

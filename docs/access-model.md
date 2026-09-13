@@ -27,3 +27,5 @@ Le seeder crée `GLOBALE_SANTE` sans remplacer les données existantes. Une comm
 ## Clés API et audit
 
 Le Super Admin et l’Admin Client gèrent les clés de leurs tenants autorisés. Le Support consulte les métadonnées sans gérer les clés. Le journal global est réservé aux rôles RelaxIT ; le journal d’un tenant est accessible à son Admin Client et aux rôles RelaxIT. User Client et Read Only n’accèdent ni aux clés ni au journal. Le contexte d’API est dérivé de la clé et est indépendant du tenant de la session web.
+
+Les notifications sont consultables par tous les membres actifs du client (y compris Lecture seule), ainsi que par les rôles plateforme. Les numéros sont masqués, et le contenu des variables n’est pas affiché. La création passe uniquement par une clé API ; la consultation API est limitée au client et à l’application de cette clé.

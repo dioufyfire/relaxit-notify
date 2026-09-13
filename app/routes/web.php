@@ -4,6 +4,7 @@ use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/tenants/{tenant}/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
     Route::get('/tenants/{tenant}/audit', [AuditController::class, 'index'])->name('tenants.audit');
     Route::get('/tenants/{tenant}/api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');

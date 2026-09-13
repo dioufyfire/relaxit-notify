@@ -29,7 +29,7 @@ L’URL de production est `https://notify.relaxit.pro/api/v1/me`. La réponse co
 }
 ```
 
-L’identifiant numérique dépend de votre base. Le client est déterminé uniquement par la clé, jamais par la session web ou un paramètre `tenant_id`. Ne pas transmettre une clé dans une URL. Ce jalon ne fournit pas encore `/api/v1/notifications` et ne déclenche aucun envoi WhatsApp.
+L’identifiant numérique dépend de votre base. Le client est déterminé uniquement par la clé, jamais par la session web ou un paramètre `tenant_id`. Ne pas transmettre une clé dans une URL. Le [moteur de notifications](notifications.md) fournit maintenant `/api/v1/notifications` pour enregistrer et suivre les demandes. Aucun envoi WhatsApp n’est encore actif.
 
 Réponses : `200` connexion valide ; `401` clé absente, inconnue, falsifiée, expirée, révoquée ou client désactivé ; `429` limite atteinte, avec `Retry-After`. La limite est de 60 requêtes/minute par client, partagée entre ses applications (`API_REQUESTS_PER_MINUTE` dans `app/.env`). Une limite d’entrée supplémentaire de 120 requêtes/minute par IP s’applique avant authentification. Redis doit rester le cache de production. Configurer les proxies de confiance comme indiqué dans le guide de déploiement pour identifier correctement l’IP du visiteur.
 

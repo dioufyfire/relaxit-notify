@@ -3,6 +3,10 @@ import { Head, Link } from "@inertiajs/vue3";
 import AppLayout from "../../Layouts/AppLayout.vue";
 defineProps({ events: Object, tenant: Object });
 const labels = {
+    "notification.accepted": "Notification enregistrée",
+    "notification.awaiting_provider":
+        "Notification prête, fournisseur à connecter",
+    "notification.blocked": "Notification bloquée",
     "auth.login": "Connexion réussie",
     "auth.failed": "Échec de connexion",
     "auth.logout": "Déconnexion",
@@ -48,7 +52,13 @@ const labels = {
                     <p>{{ event.actor }} · {{ event.tenant }}</p>
                     <small class="muted" v-if="event.metadata?.application"
                         >Application : {{ event.metadata.application }} ·
-                        Référence de clé : {{ event.metadata.key_id }}</small
+                        <template v-if="event.metadata.key_id"
+                            >Référence de clé :
+                            {{ event.metadata.key_id }}</template
+                        ></small
+                    ><small class="muted" v-if="event.metadata?.notification_id"
+                        >Notification :
+                        {{ event.metadata.notification_id }}</small
                     ><small class="muted" v-if="event.metadata?.fields?.length"
                         >Champs : {{ event.metadata.fields.join(", ") }}</small
                     ><small class="muted" v-if="event.ip_address"
