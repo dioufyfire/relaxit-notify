@@ -16,7 +16,10 @@ const labels = {
     blocked: "Bloquée",
     sending: "Envoi en cours",
     submitted: "Acceptée par Meta",
-    failed: "Refusée par Meta",
+    failed: "Échec WhatsApp",
+    sent: "Envoyée",
+    delivered: "Livrée",
+    read: "Lue",
     delivery_unknown: "Résultat à vérifier",
 };
 const date = (value) =>
@@ -121,6 +124,19 @@ const date = (value) =>
                         {{ date(notification.created_at) }}</small
                     >
                     <small>Prévue : {{ date(notification.schedule_at) }}</small>
+                    <small v-if="notification.sent_at"
+                        >Envoyée le {{ date(notification.sent_at) }}</small
+                    >
+                    <small v-if="notification.delivered_at"
+                        >Livrée le {{ date(notification.delivered_at) }}</small
+                    >
+                    <small v-if="notification.read_at"
+                        >Lue le {{ date(notification.read_at) }}</small
+                    >
+                    <small v-if="notification.delivery_failed_at" class="muted"
+                        >Échec signalé le
+                        {{ date(notification.delivery_failed_at) }}</small
+                    >
                     <small v-if="notification.prepared_at" class="muted"
                         >Traitée le {{ date(notification.prepared_at) }}</small
                     >
