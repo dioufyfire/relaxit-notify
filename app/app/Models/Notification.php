@@ -10,7 +10,7 @@ class Notification extends Model
 {
     use HasFactory;
 
-    public const STATUSES = ['pending', 'scheduled', 'queued', 'awaiting_provider', 'blocked', 'sending', 'submitted', 'failed', 'delivery_unknown'];
+    public const STATUSES = ['pending', 'scheduled', 'queued', 'awaiting_provider', 'blocked', 'sending', 'submitted', 'failed', 'delivery_unknown', 'sent', 'delivered', 'read'];
 
     protected $hidden = ['recipient', 'variables', 'external_reference', 'request_hash', 'idempotency_hash'];
 
@@ -25,6 +25,10 @@ class Notification extends Model
             'prepared_at' => 'immutable_datetime',
             'send_started_at' => 'immutable_datetime',
             'submitted_at' => 'immutable_datetime',
+            'sent_at' => 'immutable_datetime',
+            'delivered_at' => 'immutable_datetime',
+            'read_at' => 'immutable_datetime',
+            'delivery_failed_at' => 'immutable_datetime',
         ];
     }
 
@@ -47,6 +51,10 @@ class Notification extends Model
             'prepared_at' => $this->prepared_at?->toISOString(),
             'provider_message_id' => $this->provider_message_id,
             'submitted_at' => $this->submitted_at?->toISOString(),
+            'sent_at' => $this->sent_at?->toISOString(),
+            'delivered_at' => $this->delivered_at?->toISOString(),
+            'read_at' => $this->read_at?->toISOString(),
+            'delivery_failed_at' => $this->delivery_failed_at?->toISOString(),
         ];
     }
 }

@@ -7,12 +7,12 @@ Le pilote relie une nouvelle notification au numéro de test Meta. Il reste dés
 - Modèles avec paramètres texte positionnels dans le corps uniquement (ou sans paramètres). Les modèles à paramètres nommés, en-tête média, boutons dynamiques et les messages libres ne sont pas pris en charge dans ce pilote.
 - Les demandes créées avant la date d’activation et les anciennes demandes `awaiting_provider` ne sont jamais envoyées automatiquement.
 - Un seul appel Meta par tentative ; pas de répétition automatique après timeout, réponse ambiguë ou interruption du worker.
-- `submitted` signifie accepté par Meta, pas livré ou lu. Le webhook de statuts sera une étape distincte ; vérifier la réception sur le téléphone pour ce pilote.
+- `submitted` signifie accepté par Meta, pas livré ou lu. Le [webhook de statuts](meta-webhooks.md) permet ensuite de suivre la livraison et la lecture ; vérifier aussi la réception sur le téléphone.
 - Aucun stockage de token en base ni affichage dans le navigateur. L’outil de diagnostic ne fait aucun appel réseau et n’affiche que les noms de réglages invalides.
 
 ## 1. Déployer le code sans activer les envois
 
-Suivre [deployment.md](deployment.md) sur `codex/meta-whatsapp-pilot`, avec sauvegarde préalable. La migration ajoute `provider_message_id`, `send_started_at` et `submitted_at`. Conserver `APP_KEY` et les secrets existants.
+Suivre [deployment.md](deployment.md) sur `codex/meta-webhooks`, avec sauvegarde préalable. La migration ajoute `provider_message_id`, `send_started_at` et `submitted_at`. Conserver `APP_KEY` et les secrets existants.
 
 ## 2. Renseigner la configuration dans app/.env
 

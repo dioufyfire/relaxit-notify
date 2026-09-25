@@ -14,7 +14,18 @@ class WhatsAppStatus extends Command
     public function handle(MetaWhatsApp $provider): int
     {
         $this->info(config('meta_whatsapp.enabled') ? 'Pilote activé.' : 'Envois désactivés.');
+        $this->info(config('meta_whatsapp.webhook_enabled') ? 'Webhooks activés.' : 'Webhooks désactivés.');
         $invalid = $provider->invalidSettings();
+        if (config('meta_whatsapp.webhook_enabled')) {
+            foreach (['app_secret', 'verify_token'] as $setting) {
+                if (! is_string(config('meta_whatsapp.'.$setting)) || config('meta_whatsapp.'.$setting) === '') {
+                    $invalid[] = $setting;
+                }
+            }
+            if (! preg_match('/\A[0-9]{5,30}\z/', (string) config('meta_whatsapp.waba_id'))) {
+                $invalid[] = 'waba_id';
+            }
+        }
         if ($invalid !== []) {
             $this->warn('Paramètres manquants ou invalides : '.implode(', ', $invalid));
 

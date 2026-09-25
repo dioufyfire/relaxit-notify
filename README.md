@@ -32,3 +32,5 @@ Les tests utilisent une stack distincte, jamais les bases ou volumes de producti
 Le moteur de notifications est décrit dans [le guide API](docs/notifications.md) : réception idempotente, planification, file Redis et suivi par client, avant connexion Meta.
 
 Le [pilote Meta WhatsApp](docs/meta-whatsapp.md) ajoute un envoi contrôlé, désactivé par défaut, avec destinataire et modèle limités.
+
+Le [suivi Meta par webhook](docs/meta-webhooks.md) ajoute les états envoyé, livré, lu et échec, avec vérification des signatures et traitement des doublons.

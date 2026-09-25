@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MetaWebhookController;
 use App\Http\Controllers\NotificationApiController;
 use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Http\Request;
@@ -16,3 +17,6 @@ Route::middleware(['throttle:api-entry', AuthenticateApiKey::class])->group(func
     Route::post('/v1/notifications', [NotificationApiController::class, 'store'])->name('api.notifications.store');
     Route::get('/v1/notifications/{id}', [NotificationApiController::class, 'show'])->whereUlid('id')->name('api.notifications.show');
 });
+
+Route::get('/webhooks/whatsapp', [MetaWebhookController::class, 'verify'])->name('meta.webhook.verify');
+Route::post('/webhooks/whatsapp', [MetaWebhookController::class, 'receive'])->name('meta.webhook.receive');

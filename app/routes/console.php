@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('relaxit:queue-notifications')->everyMinute()->withoutOverlapping(5);
+
+Schedule::command('relaxit:reconcile-meta-webhooks')->everyMinute()->withoutOverlapping(5);

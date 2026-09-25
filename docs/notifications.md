@@ -85,10 +85,15 @@ La protection s’appuie sur un verrou transactionnel et une contrainte unique P
 | blocked | Traitement interdit : client désactivé ou configuration/restrictions du pilote. Voir `error_code`. |
 | sending | Appel Meta commencé ; aucun nouvel appel automatique pour cette demande. |
 | submitted | Demande acceptée par Meta ; ne confirme pas la livraison. |
-| failed | Refus HTTP Meta ; aucun renvoi automatique. |
+| sent | Envoi confirmé par un webhook Meta. |
+| delivered | Livraison confirmée par un webhook Meta. |
+| read | Lecture confirmée par un webhook Meta. |
+| failed | Refus HTTP Meta ou échec signalé par webhook ; aucun renvoi automatique. |
 | delivery_unknown | Résultat incertain à vérifier, aucun renvoi automatique. |
 
 Une réactivation du client ne relance pas automatiquement une demande bloquée. Aucun bouton de renvoi, d’annulation ni aucun envoi automatique des demandes `awaiting_provider` n’existe dans ce jalon.
+
+Les champs `sent_at`, `delivered_at`, `read_at` et `delivery_failed_at` exposent les dates fournies par Meta, ou `null` sans événement correspondant. Activer le [suivi par webhook](meta-webhooks.md) pour les renseigner.
 
 ## Résilience et confidentialité
 
@@ -124,4 +129,4 @@ curl --silent --show-error --include \
 unset RELAXIT_API_KEY
 ```
 
-Rejouer exactement cette demande donne le même identifiant. Après le passage du worker, Clients → Globale Santé → Notifications affiche « En attente du fournisseur ». Le module Dolimed et le transport Meta sont les étapes suivantes.
+Rejouer exactement cette demande donne le même identifiant. Après le passage du worker, Clients → Globale Santé → Notifications affiche « En attente du fournisseur ». Pour un envoi réel, utiliser les paramètres du [pilote Meta](meta-whatsapp.md). L’intégration Dolimed reste une étape suivante.

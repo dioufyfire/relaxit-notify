@@ -40,6 +40,8 @@ class PrepareNotification implements ShouldQueue
             $notification->prepared_at = now();
             if ($notification->status === 'sending') {
                 $notification->send_started_at = now();
+                $notification->provider_phone_number_id = config('meta_whatsapp.phone_number_id');
+                $notification->provider_waba_id = config('meta_whatsapp.waba_id') ?: null;
             }
             $notification->save();
             Audit::record('notification.'.$notification->status, $tenant, metadata: ['notification_id' => $notification->public_id, 'application' => $notification->application]);
