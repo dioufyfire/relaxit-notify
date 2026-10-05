@@ -57,6 +57,37 @@ class MetaWhatsAppTest extends TestCase
         $this->assertStringNotContainsString('private-test-token', $log);
     }
 
+    public function test_image_header_is_sent_with_ordered_body_parameters(): void
+    {
+        config(['meta_whatsapp.header_image_url' => 'https://example.com/logo.png']);
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.image123']]], 200)]);
+        $notification = $this->notification();
+        (new PrepareNotification($notification->id))->handle();
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => $request['template']['components'] === [
+            ['type' => 'header', 'parameters' => [['type' => 'image', 'image' => ['link' => 'https://example.com/logo.png']]]],
+            ['type' => 'body', 'parameters' => [
+                ['type' => 'text', 'text' => '20 octobre'], ['type' => 'text', 'text' => 'Private example'],
+            ]],
+        ]);
+        $this->assertSame('submitted', $notification->fresh()->status);
+    }
+
+    public function test_invalid_image_configuration_blocks_sending(): void
+    {
+        $notification = $this->notification();
+        foreach (['http://example.com/logo.png', 'not-a-url', 'https://user:password@example.com/logo.png', 'https://example.com/logo.png#fragment', ['invalid']] as $url) {
+            config(['meta_whatsapp.header_image_url' => $url]);
+            $notification->refresh();
+            $notification->status = 'pending';
+            $notification->save();
+            (new PrepareNotification($notification->id))->handle();
+            $this->assertSame('whatsapp_config_invalid', $notification->fresh()->error_code);
+            $this->artisan('relaxit:whatsapp-status')->assertFailed();
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_disabled_provider_keeps_requests_waiting(): void
     {
         config(['meta_whatsapp.enabled' => false]);

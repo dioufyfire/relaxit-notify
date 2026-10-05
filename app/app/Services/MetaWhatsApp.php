@@ -30,6 +30,16 @@ class MetaWhatsApp
         if (! is_string(config('meta_whatsapp.access_token')) || trim(config('meta_whatsapp.access_token')) === '') {
             $invalid[] = 'access_token';
         }
+        $imageUrl = config('meta_whatsapp.header_image_url');
+        if ($imageUrl !== null && $imageUrl !== '') {
+            if (! is_string($imageUrl) || ! filter_var($imageUrl, FILTER_VALIDATE_URL)
+                || parse_url($imageUrl, PHP_URL_SCHEME) !== 'https'
+                || parse_url($imageUrl, PHP_URL_USER) !== null
+                || parse_url($imageUrl, PHP_URL_PASS) !== null
+                || parse_url($imageUrl, PHP_URL_FRAGMENT) !== null) {
+                $invalid[] = 'header_image_url';
+            }
+        }
         $cutoff = config('meta_whatsapp.enabled_after');
         try {
             if (! is_string($cutoff) || ! preg_match('/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})\z/', $cutoff)
@@ -84,12 +94,22 @@ class MetaWhatsApp
     public function send(Notification $notification): array
     {
         $template = ['name' => config('meta_whatsapp.template'), 'language' => ['code' => config('meta_whatsapp.language')]];
+        $components = [];
+        $imageUrl = config('meta_whatsapp.header_image_url');
+        if (is_string($imageUrl) && $imageUrl !== '') {
+            $components[] = ['type' => 'header', 'parameters' => [
+                ['type' => 'image', 'image' => ['link' => $imageUrl]],
+            ]];
+        }
         $parameters = [];
         foreach (config('meta_whatsapp.body_variables') as $variable) {
             $parameters[] = ['type' => 'text', 'text' => $notification->variables[$variable]];
         }
         if ($parameters !== []) {
-            $template['components'] = [['type' => 'body', 'parameters' => $parameters]];
+            $components[] = ['type' => 'body', 'parameters' => $parameters];
+        }
+        if ($components !== []) {
+            $template['components'] = $components;
         }
         try {
             $response = Http::withToken(config('meta_whatsapp.access_token'))->acceptJson()

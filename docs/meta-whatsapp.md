@@ -4,7 +4,7 @@ Le pilote relie une nouvelle notification au numéro de test Meta. Il reste dés
 
 ## Périmètre
 
-- Modèles avec paramètres texte positionnels dans le corps uniquement (ou sans paramètres). Les modèles à paramètres nommés, en-tête média, boutons dynamiques et les messages libres ne sont pas pris en charge dans ce pilote.
+- Modèles avec paramètres texte positionnels dans le corps (ou sans paramètres), avec un en-tête image facultatif configuré sur le serveur. Les modèles à paramètres nommés, autres en-têtes média, boutons dynamiques et les messages libres ne sont pas pris en charge dans ce pilote.
 - Les demandes créées avant la date d’activation et les anciennes demandes `awaiting_provider` ne sont jamais envoyées automatiquement.
 - Un seul appel Meta par tentative ; pas de répétition automatique après timeout, réponse ambiguë ou interruption du worker.
 - `submitted` signifie accepté par Meta, pas livré ou lu. Le [webhook de statuts](meta-webhooks.md) permet ensuite de suivre la livraison et la lecture ; vérifier aussi la réception sur le téléphone.
@@ -36,6 +36,20 @@ Le Phone Number ID provient du numéro de test montré dans la capture. Il est d
 Copier le nom et la langue EXACTS de l’objet `template` du test Meta reçu. Si son corps comporte des paramètres positionnels, attribuer un nom local à chacun, dans le même ordre : par exemple `META_WHATSAPP_BODY_VARIABLES=name,order_reference` pour deux paramètres. L’API RelaxIT devra recevoir exactement ces clés dans `variables`. Cette liste illustrative n’affirme pas que le modèle de votre compte attend deux paramètres.
 
 Pour un modèle sans paramètres, laisser la liste vide et envoyer `"variables": {}`. Le serveur refuse tout autre modèle et toute variable manquante ou supplémentaire. L’état d’approbation du modèle et la validité du token sont vérifiés par Meta lors de la requête, pas par la commande locale.
+
+### Modèle avec en-tête image
+
+Si le modèle approuvé contient `HEADER / IMAGE`, ajouter dans `app/.env` :
+
+```dotenv
+META_WHATSAPP_HEADER_IMAGE_URL="https://votre-domaine.example/images/logo.png"
+```
+
+Remplacer cette URL illustrative par un lien direct HTTPS public vers une image JPEG ou PNG accessible à Meta sans authentification (5 Mo maximum). Utiliser une URL stable sous votre contrôle, pas le lien temporaire `example.header_handle` renvoyé par Meta. L'image d'exemple du modèle ne remplace pas l'image à fournir à chaque envoi.
+
+RelaxIT transmet cette URL à Meta dans `header.parameters`, puis les variables texte dans `body.parameters`. L'image est commune au modèle du pilote ; Dolimed continue d'envoyer uniquement ses trois variables. Laisser la variable vide pour un modèle sans en-tête image. Le diagnostic local vérifie la forme de l'URL, pas son accessibilité ni le format réel du fichier.
+
+Après modification : `docker compose exec app php artisan config:cache`, puis `docker compose restart app worker scheduler`. Créer un nouveau rendez-vous fictif pour la recette ; les notifications déjà en échec ne sont pas renvoyées automatiquement.
 
 ## 3. Autoriser la sortie réseau du worker
 
