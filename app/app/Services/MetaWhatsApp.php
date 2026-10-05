@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\Tenant;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -17,11 +18,24 @@ class MetaWhatsApp
             'version' => '/\Av\d+\.0\z/',
             'phone_number_id' => '/\A[0-9]{5,30}\z/',
             'tenant_code' => '/\A[A-Z][A-Z0-9_]{0,63}\z/',
-            'recipient' => '/\A\+[1-9][0-9]{7,14}\z/',
             'template' => '/\A[a-z][a-z0-9_]{0,99}\z/',
             'language' => '/\A[a-z]{2,3}(?:_[A-Z]{2})?\z/',
         ];
+        if (config('meta_whatsapp.mode', 'pilot') === 'pilot') {
+            $rules['recipient'] = '/\A\+[1-9][0-9]{7,14}\z/';
+        }
         $invalid = [];
+        if (! in_array(config('meta_whatsapp.mode', 'pilot'), ['pilot', 'production'], true)) {
+            $invalid[] = 'mode';
+        }
+        $limit = config('meta_whatsapp.max_attempts_per_24h', 250);
+        if ((! is_int($limit) && ! is_string($limit)) || filter_var($limit, FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 250]]) === false) {
+            $invalid[] = 'max_attempts_per_24h';
+        }
+        if (config('meta_whatsapp.mode', 'pilot') === 'production') {
+            $rules['application'] = '/\A[a-z][a-z0-9_-]{0,63}\z/';
+        }
         foreach ($rules as $name => $pattern) {
             if (! is_string(config('meta_whatsapp.'.$name)) || ! preg_match($pattern, config('meta_whatsapp.'.$name))) {
                 $invalid[] = $name;
@@ -76,8 +90,13 @@ class MetaWhatsApp
         if ($notification->created_at->lte(CarbonImmutable::parse(config('meta_whatsapp.enabled_after')))) {
             return ['status' => 'awaiting_provider', 'error' => null];
         }
-        if ($tenant->code !== config('meta_whatsapp.tenant_code') || $notification->recipient !== config('meta_whatsapp.recipient')) {
+        if ($tenant->code !== config('meta_whatsapp.tenant_code')
+            || (config('meta_whatsapp.mode', 'pilot') === 'pilot' && $notification->recipient !== config('meta_whatsapp.recipient'))) {
             return ['status' => 'blocked', 'error' => 'outside_whatsapp_pilot'];
+        }
+        if (config('meta_whatsapp.mode', 'pilot') === 'production'
+            && $notification->application !== config('meta_whatsapp.application', 'dolibarr')) {
+            return ['status' => 'blocked', 'error' => 'whatsapp_application_not_allowed'];
         }
         $expected = config('meta_whatsapp.body_variables');
         $actual = array_map('strval', array_keys($notification->variables));
@@ -88,6 +107,24 @@ class MetaWhatsApp
         }
 
         return ['status' => 'sending', 'error' => null];
+    }
+
+    public function attemptsInLast24Hours(): int
+    {
+        return Notification::whereNotNull('send_started_at')
+            ->where('send_started_at', '>=', now()->subHours(24))->count();
+    }
+
+    /** Called inside the claim transaction, before persisting send_started_at. */
+    public function hasCapacityForAttempt(): bool
+    {
+        if (DB::transactionLevel() < 1) {
+            throw new \LogicException('WhatsApp capacity must be checked in the claim transaction.');
+        }
+        // One PostgreSQL transaction lock serializes reservations across tenants and numbers.
+        DB::select('SELECT pg_advisory_xact_lock(?, ?)', [724613, 1]);
+
+        return $this->attemptsInLast24Hours() < (int) config('meta_whatsapp.max_attempts_per_24h', 250);
     }
 
     /** @return array{status: string, error: ?string, message_id: ?string} */

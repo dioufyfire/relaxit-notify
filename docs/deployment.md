@@ -1,5 +1,42 @@
 # Déployer RelaxIT Notify — authentification, clés API, audit et notifications
 
+## Ouverture aux patients — mode production contrôlé
+
+La branche `codex/whatsapp-production-guardrails` inclut les jalons précédents. Cette mise à jour ne demande ni migration, ni nouvelle dépendance, ni compilation frontend. Elle utilise PostgreSQL pour sérialiser le compteur d'envoi. Le mode pilote reste le défaut : récupérer le code seul n'ouvre pas les destinataires.
+
+Depuis la version avec image validée, conserver une sauvegarde et la révision actuelle, puis arrêter temporairement worker/scheduler pour éviter des workers utilisant des réglages différents :
+
+```bash
+cd /docker/relaxit-notify
+git status --short
+git rev-parse HEAD
+docker compose stop worker scheduler
+git fetch origin
+git switch codex/whatsapp-production-guardrails
+git pull --ff-only origin codex/whatsapp-production-guardrails
+date -u +%Y-%m-%dT%H:%M:%SZ
+```
+
+En cas de conflit Git, conserver les modifications locales et le résoudre avant la suite. Dans `app/.env`, conserver les secrets, l'image et le modèle validés ; ajouter :
+
+```dotenv
+META_WHATSAPP_MODE=production
+META_WHATSAPP_APPLICATION=dolibarr
+META_WHATSAPP_MAX_ATTEMPTS_PER_24H=250
+```
+
+Remplacer `META_WHATSAPP_ENABLED_AFTER` par l'heure UTC affichée pour exclure l'ancien lot, et conserver `META_WHATSAPP_ENABLED=true` lorsque l'ouverture est souhaitée. Ne pas supprimer le destinataire de test : il servira pour un retour au mode pilote.
+
+```bash
+docker compose exec app php artisan config:cache
+docker compose exec app php artisan relaxit:whatsapp-status
+docker compose restart app worker scheduler
+```
+
+Ne redémarrer les envois qu'après un diagnostic local réussi. Un `restart` conserve le réseau sortant du worker ; pour toute recréation avec `up`, conserver l'override `docker-compose.meta.yml`. La configuration Dolimed reste identique. Faire la recette avec un second numéro de test consenti et suivre les statuts jusqu'à `Lu` dans les deux applications. Les détails du plafond et du consentement figurent dans [meta-whatsapp.md](meta-whatsapp.md#ouverture-aux-patients-de-globale-santé).
+
+Pour revenir au pilote : arrêter worker/scheduler, remettre `META_WHATSAPP_MODE=pilot`, vérifier le destinataire de test, refaire le cache et le diagnostic, puis redémarrer. Conserver le code pour garder le plafond local. Les demandes bloquées ne sont pas remises en file automatiquement.
+
 ## Mise à jour de l’en-tête image WhatsApp
 
 Depuis la version `codex/meta-webhooks`, cette évolution n'ajoute ni dépendance, ni migration, ni changement frontend. Conserver les `.env` et `APP_KEY` existants.

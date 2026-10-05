@@ -7,6 +7,7 @@ use App\Models\AuditEvent;
 use App\Models\Notification;
 use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -183,6 +184,126 @@ class MetaWhatsAppTest extends TestCase
         $this->artisan('relaxit:queue-notifications')->assertSuccessful();
         $this->assertSame('delivery_unknown', $notification->fresh()->status);
         Queue::assertNothingPushed();
+    }
+
+    public function test_production_sends_to_another_patient_without_a_test_recipient(): void
+    {
+        config(['meta_whatsapp.mode' => 'production', 'meta_whatsapp.application' => 'dolibarr', 'meta_whatsapp.recipient' => '']);
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.production']]], 200)]);
+        $notification = $this->notification(['recipient' => '+221770000099']);
+        (new PrepareNotification($notification->id))->handle();
+        Http::assertSent(fn ($request) => $request['to'] === '221770000099');
+        $this->assertSame('submitted', $notification->fresh()->status);
+    }
+
+    public function test_production_keeps_tenant_application_and_template_boundaries(): void
+    {
+        config(['meta_whatsapp.mode' => 'production', 'meta_whatsapp.application' => 'dolibarr']);
+        $notification = $this->notification();
+        foreach ([
+            ['application' => 'other', 'template' => 'appointment_reminder', 'error' => 'whatsapp_application_not_allowed'],
+            ['application' => 'dolibarr', 'template' => 'other', 'error' => 'whatsapp_template_mismatch'],
+        ] as $case) {
+            $notification->refresh();
+            $notification->status = 'pending';
+            $notification->application = $case['application'];
+            $notification->template = $case['template'];
+            $notification->save();
+            (new PrepareNotification($notification->id))->handle();
+            $this->assertSame($case['error'], $notification->fresh()->error_code);
+        }
+        config(['meta_whatsapp.tenant_code' => 'OTHER']);
+        $notification->refresh();
+        $notification->status = 'pending';
+        $notification->save();
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('blocked', $notification->fresh()->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_mode_or_limit_never_opens_sending(): void
+    {
+        $notification = $this->notification();
+        foreach (['Production', '', 'all'] as $mode) {
+            config(['meta_whatsapp.mode' => $mode]);
+            $notification->refresh();
+            $notification->status = 'pending';
+            $notification->save();
+            (new PrepareNotification($notification->id))->handle();
+            $this->assertSame('whatsapp_config_invalid', $notification->fresh()->error_code);
+        }
+        config(['meta_whatsapp.mode' => 'pilot']);
+        foreach ([0, -1, 251, 'invalid', true, 1.5, null] as $limit) {
+            config(['meta_whatsapp.max_attempts_per_24h' => $limit]);
+            $notification->refresh();
+            $notification->status = 'pending';
+            $notification->save();
+            (new PrepareNotification($notification->id))->handle();
+            $this->assertSame('whatsapp_config_invalid', $notification->fresh()->error_code);
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_daily_limit_counts_failed_and_uncertain_attempts_across_tenants_and_numbers(): void
+    {
+        config(['meta_whatsapp.max_attempts_per_24h' => 2]);
+        Notification::factory()->create(['status' => 'failed', 'send_started_at' => now()->subHour(), 'provider_phone_number_id' => '99999999']);
+        Notification::factory()->create(['status' => 'delivery_unknown', 'send_started_at' => now()->subHours(2)]);
+        $notification = $this->notification();
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('blocked', $notification->fresh()->status);
+        $this->assertSame('whatsapp_daily_limit_reached', $notification->fresh()->error_code);
+        $this->assertNull($notification->fresh()->send_started_at);
+        $this->travel(25)->hours();
+        Queue::fake();
+        $this->artisan('relaxit:queue-notifications')->assertSuccessful();
+        (new PrepareNotification($notification->id))->handle();
+        Queue::assertNothingPushed();
+        Http::assertNothingSent();
+    }
+
+    public function test_expired_attempts_and_unsent_rows_do_not_consume_capacity(): void
+    {
+        config(['meta_whatsapp.max_attempts_per_24h' => '1']);
+        Notification::factory()->create(['status' => 'read', 'send_started_at' => now()->subHours(24)->subSecond()]);
+        Notification::factory()->create(['status' => 'blocked', 'send_started_at' => null]);
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.capacity']]], 200)]);
+        $notification = $this->notification();
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('submitted', $notification->fresh()->status);
+        $next = Notification::factory()->create([
+            'tenant_id' => $notification->tenant_id, 'variables' => ['name' => 'Another', 'date' => '20 octobre'],
+        ]);
+        (new PrepareNotification($next->id))->handle();
+        $this->assertSame('whatsapp_daily_limit_reached', $next->fresh()->error_code);
+        Http::assertSentCount(1);
+    }
+
+    public function test_attempt_at_the_24_hour_boundary_is_still_counted(): void
+    {
+        $this->freezeSecond();
+        config(['meta_whatsapp.max_attempts_per_24h' => 1]);
+        Notification::factory()->create(['status' => 'sending', 'send_started_at' => now()->subHours(24)]);
+        $notification = $this->notification();
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('whatsapp_daily_limit_reached', $notification->fresh()->error_code);
+        Http::assertNothingSent();
+    }
+
+    public function test_reservation_holds_a_database_lock_against_other_connections(): void
+    {
+        config(['database.connections.quota_probe' => config('database.connections.'.config('database.default'))]);
+        $probe = DB::connection('quota_probe');
+        try {
+            $this->assertTrue($probe->selectOne('SELECT pg_try_advisory_xact_lock(724613, 1) AS acquired')->acquired);
+            Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.lock']]], 200)]);
+            $notification = $this->notification();
+            (new PrepareNotification($notification->id))->handle();
+            // RefreshDatabase keeps the outer transaction open until this test ends.
+            $this->assertFalse($probe->selectOne('SELECT pg_try_advisory_xact_lock(724613, 1) AS acquired')->acquired);
+        } finally {
+            DB::purge('quota_probe');
+        }
     }
 
     public function test_readiness_command_does_not_reveal_secrets_or_send_requests(): void

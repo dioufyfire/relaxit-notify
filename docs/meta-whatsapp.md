@@ -1,6 +1,41 @@
 # Pilote Meta WhatsApp — RelaxIT Notify
 
-Le pilote relie une nouvelle notification au numéro de test Meta. Il reste désactivé par défaut et limité à un client, un destinataire et un modèle. Il ne modifie pas le numéro professionnel utilisé dans WhatsApp Business sur téléphone.
+Le mode `pilot`, conservé par défaut, limite les envois à un client, un destinataire et un modèle. Le mode `production` permet plusieurs destinataires pour le client et l’application configurés. Les envois restent désactivés par défaut. La configuration du numéro et son abonnement aux webhooks doivent être validés chez Meta avant activation.
+
+## Ouverture aux patients de Globale Santé
+
+La branche `codex/whatsapp-production-guardrails` inclut l'en-tête image et ajoute un mode explicite. Après déploiement suivant [deployment.md](deployment.md), configurer :
+
+```dotenv
+META_WHATSAPP_MODE=production
+META_WHATSAPP_APPLICATION=dolibarr
+META_WHATSAPP_MAX_ATTEMPTS_PER_24H=250
+```
+
+Conserver `META_WHATSAPP_TENANT_CODE=GLOBALE_SANTE`, le modèle approuvé, sa langue, ses trois variables et l'URL de l'image. `META_WHATSAPP_TEST_RECIPIENT` reste enregistré pour revenir au pilote, mais ne limite plus les destinataires en production. Une valeur de mode autre que `pilot` ou `production` bloque les envois. Le client actif, l'application et le modèle restent contrôlés. Mettre une nouvelle date UTC dans `META_WHATSAPP_ENABLED_AFTER` au lancement pour ne pas ouvrir un ancien lot en attente.
+
+Le consentement est vérifié dans Dolimed Notif à la création, puis juste avant transmission à RelaxIT : case d'accord WhatsApp cochée, mobile international valide, rendez-vous futur `AC_RDV` rattaché au tiers. RelaxIT ne lit pas la fiche patient et ne revérifie pas un consentement retiré après transmission. Les clés API `dolibarr` doivent rester réservées à ce connecteur ; ce mode n'ajoute pas de registre central de consentement ni de traitement des réponses entrantes.
+
+### Plafond local et suivi
+
+Le plafond est **un nombre de tentatives d'envoi sur 24 heures glissantes**, de 1 à 250, commun à toute cette installation RelaxIT. Il compte chaque prise en charge `send_started_at`, y compris les échecs, les résultats incertains et plusieurs messages au même patient. Les anciennes tentatives du pilote sont incluses. Il ne se remet pas à zéro à minuit et n'est pas remis à zéro par un changement de numéro ou de client. Une réservation transactionnelle PostgreSQL empêche deux workers de dépasser simultanément le plafond. Le compteur devient durable avant l'appel Meta ; une interruption consomme donc aussi une tentative par prudence.
+
+Ce compteur prudent n'est **pas une lecture du quota Meta** et ne mesure pas les destinataires uniques. Il ne voit pas les envois effectués depuis d'autres outils ou installations : réduire le plafond si le compte est partagé, et continuer à surveiller la limite dans Meta. Ne pas supprimer l'historique des dernières 24 heures pour réinitialiser ce compteur.
+
+Une demande excédentaire devient `blocked` avec `whatsapp_daily_limit_reached`, visible sur la notification et dans l'API. Aucun appel Meta n'est effectué. Elle n'est pas automatiquement réactivée lorsque la capacité revient : éviter une confirmation envoyée tardivement. Dolimed récupère cet état lors de sa synchronisation. Traiter le rendez-vous concerné manuellement, sans créer de doublons pour contourner le plafond. Les nouveaux rendez-vous pourront repartir quand des tentatives sortiront de la fenêtre des 24 heures.
+
+```bash
+docker compose exec app php artisan relaxit:whatsapp-status
+```
+
+La commande indique le mode et `Tentatives locales sur 24 h : N / 250`, sans numéro ni secret. Pour suspendre les envois, mettre `META_WHATSAPP_ENABLED=false`, refaire le cache et redémarrer les workers. Pour revenir au destinataire unique, mettre `META_WHATSAPP_MODE=pilot` avec un `META_WHATSAPP_TEST_RECIPIENT` valide et recharger de la même manière.
+
+### Recette après ouverture
+
+- Créer un rendez-vous fictif futur avec un second numéro de test consenti, différent du destinataire historique du pilote.
+- Vérifier l'image, le texte, puis `Lu` dans RelaxIT et Dolimed après synchronisation.
+- Avec un tiers de test sans accord WhatsApp, vérifier qu'aucune demande n'est créée dans Dolimed Notif.
+- Vérifier que le compteur local augmente pour le premier envoi uniquement. Les tests automatisés couvrent le plafond sans envoyer des centaines de messages réels.
 
 ## Périmètre
 
@@ -80,7 +115,7 @@ docker compose -f docker-compose.yml -f docker-compose.meta.yml restart worker
 docker compose exec app php artisan relaxit:whatsapp-status
 ```
 
-Le diagnostic doit afficher « Pilote activé » et « Configuration locale complète ». Il ne valide pas la connectivité réseau ou le token chez Meta. Si le token temporaire a expiré, en générer un nouveau dans Meta et refaire le cache/restart. Le passage à un token d’exploitation sera traité avant la production.
+Le diagnostic doit afficher « Envois activés » et « Mode : pilote » et « Configuration locale complète ». Il ne valide pas la connectivité réseau ou le token chez Meta. Si le token temporaire a expiré, en générer un nouveau dans Meta et refaire le cache/restart. Le passage à un token d’exploitation sera traité avant la production.
 
 ## 5. Tester depuis RelaxIT
 
@@ -101,7 +136,9 @@ La demande doit passer par `sending`, puis `submitted`. L’écran indique « Ac
 |---|---|
 | awaiting_provider | Envois désactivés, demande antérieure à la date d’activation ou ancienne demande déjà préparée. |
 | blocked / whatsapp_config_invalid | Revoir les champs signalés par `relaxit:whatsapp-status`. |
-| blocked / outside_whatsapp_pilot | Vérifier le client et le destinataire. |
+| blocked / outside_whatsapp_pilot | Vérifier le client et, en mode pilote, le destinataire. |
+| blocked / whatsapp_application_not_allowed | Vérifier que la clé API appartient à l’application autorisée. |
+| blocked / whatsapp_daily_limit_reached | Plafond local de tentatives atteint ; traiter le rendez-vous manuellement, sans relance automatique. |
 | blocked / whatsapp_template_mismatch | Vérifier le nom du modèle et les noms des variables. |
 | failed / meta_http_400 | Meta refuse la demande ; comparer le modèle, la langue et les paramètres avec le test réussi. |
 | failed / meta_http_401 ou 403 | Vérifier le token, ses droits et l’accès au numéro de test. |

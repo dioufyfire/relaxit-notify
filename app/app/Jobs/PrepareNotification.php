@@ -35,6 +35,9 @@ class PrepareNotification implements ShouldQueue
                 return null;
             }
             $decision = $tenant->is_active ? $provider->disposition($notification, $tenant) : ['status' => 'blocked', 'error' => 'tenant_inactive'];
+            if ($decision['status'] === 'sending' && ! $provider->hasCapacityForAttempt()) {
+                $decision = ['status' => 'blocked', 'error' => 'whatsapp_daily_limit_reached'];
+            }
             $notification->status = $decision['status'];
             $notification->error_code = $decision['error'];
             $notification->prepared_at = now();
