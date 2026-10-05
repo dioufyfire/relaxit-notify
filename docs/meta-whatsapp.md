@@ -2,6 +2,48 @@
 
 Le mode `pilot`, conservé par défaut, limite les envois à un client, un destinataire et un modèle. Le mode `production` permet plusieurs destinataires pour le client et l’application configurés. Les envois restent désactivés par défaut. La configuration du numéro et son abonnement aux webhooks doivent être validés chez Meta avant activation.
 
+## Préparation des modifications, annulations et rappels
+
+La branche `codex/appointment-lifecycle-templates` permet d'autoriser plusieurs modèles approuvés. Elle ne crée pas encore les nouveaux événements dans Dolimed : les règles d'annulation et l'horaire des rappels doivent être arrêtés avant la mise à jour du connecteur. La confirmation existante reste le modèle principal.
+
+Créer les modèles suivants dans le même compte WhatsApp que la confirmation, en français (`fr`), avec un **en-tête IMAGE** identique dans sa structure et trois paramètres positionnels dans le corps : `{{1}}` nom, `{{2}}` date, `{{3}}` heure. Chaque envoi utilisera l'URL d'image déjà configurée dans RelaxIT. La catégorie proposée est Utilitaire, sous réserve de validation Meta.
+
+### Modèle proposé : globale_sante_modification_rdv
+
+```text
+Bonjour {{1}},
+votre rendez-vous chez Globale Santé a été déplacé au {{2}} à {{3}}.
+Pour toute question, veuillez contacter le cabinet.
+```
+
+### Modèle proposé : globale_sante_annulation_rdv
+
+```text
+Bonjour {{1}},
+votre rendez-vous chez Globale Santé prévu le {{2}} à {{3}} est annulé.
+Pour convenir d’un nouveau rendez-vous, veuillez contacter le cabinet.
+```
+
+### Modèle proposé : globale_sante_rappel_rdv
+
+```text
+Bonjour {{1}},
+nous vous rappelons votre rendez-vous chez Globale Santé le {{2}} à {{3}}.
+Pour toute modification, veuillez contacter le cabinet.
+```
+
+### Autorisation côté RelaxIT, après approbation
+
+Conserver `META_WHATSAPP_TEMPLATE=globale_sante_confirmation_rdv` et ajouter uniquement les noms effectivement approuvés :
+
+```dotenv
+META_WHATSAPP_ADDITIONAL_TEMPLATES=globale_sante_modification_rdv,globale_sante_annulation_rdv,globale_sante_rappel_rdv
+```
+
+La variable vide conserve le comportement actuel. Au maximum dix noms supplémentaires distincts sont acceptés, sans répéter le modèle principal. Chaque notification utilise son propre champ `template` ; les modèles partagent `META_WHATSAPP_LANGUAGE`, `META_WHATSAPP_BODY_VARIABLES` et `META_WHATSAPP_HEADER_IMAGE_URL`. Un modèle sans image ou avec d'autres paramètres n'est pas compatible avec ce réglage commun. Les contrôles de client, d'application, de destinataire en pilote et le plafond local restent identiques. Le diagnostic local ne vérifie pas l'approbation chez Meta.
+
+Ne pas remplacer le modèle de confirmation dans Dolimed par un modèle d'annulation : la version actuelle du module ne produit que des confirmations. La nouvelle liste RelaxIT prépare le raccordement du prochain connecteur ; elle ne déclenche aucun message à elle seule.
+
 ## Ouverture aux patients de Globale Santé
 
 La branche `codex/whatsapp-production-guardrails` inclut l'en-tête image et ajoute un mode explicite. Après déploiement suivant [deployment.md](deployment.md), configurer :

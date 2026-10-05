@@ -44,6 +44,19 @@ class MetaWhatsApp
         if (! is_string(config('meta_whatsapp.access_token')) || trim(config('meta_whatsapp.access_token')) === '') {
             $invalid[] = 'access_token';
         }
+        $additional = config('meta_whatsapp.additional_templates', []);
+        if (! is_array($additional) || count($additional) > 10) {
+            $invalid[] = 'additional_templates';
+        } else {
+            $seen = [config('meta_whatsapp.template')];
+            foreach ($additional as $name) {
+                if (! is_string($name) || ! preg_match('/\A[a-z][a-z0-9_]{0,99}\z/', $name) || in_array($name, $seen, true)) {
+                    $invalid[] = 'additional_templates';
+                    break;
+                }
+                $seen[] = $name;
+            }
+        }
         $imageUrl = config('meta_whatsapp.header_image_url');
         if ($imageUrl !== null && $imageUrl !== '') {
             if (! is_string($imageUrl) || ! filter_var($imageUrl, FILTER_VALIDATE_URL)
@@ -102,7 +115,7 @@ class MetaWhatsApp
         $actual = array_map('strval', array_keys($notification->variables));
         sort($expected);
         sort($actual);
-        if ($notification->channel !== 'whatsapp' || $notification->template !== config('meta_whatsapp.template') || $actual !== $expected) {
+        if ($notification->channel !== 'whatsapp' || ! in_array($notification->template, array_merge([config('meta_whatsapp.template')], config('meta_whatsapp.additional_templates', [])), true) || $actual !== $expected) {
             return ['status' => 'blocked', 'error' => 'whatsapp_template_mismatch'];
         }
 
@@ -130,7 +143,7 @@ class MetaWhatsApp
     /** @return array{status: string, error: ?string, message_id: ?string} */
     public function send(Notification $notification): array
     {
-        $template = ['name' => config('meta_whatsapp.template'), 'language' => ['code' => config('meta_whatsapp.language')]];
+        $template = ['name' => $notification->template, 'language' => ['code' => config('meta_whatsapp.language')]];
         $components = [];
         $imageUrl = config('meta_whatsapp.header_image_url');
         if (is_string($imageUrl) && $imageUrl !== '') {
