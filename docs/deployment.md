@@ -1,5 +1,27 @@
 # Déployer RelaxIT Notify — authentification, clés API, audit et notifications
 
+## Mise à jour de l’en-tête image WhatsApp
+
+Depuis la version `codex/meta-webhooks`, cette évolution n'ajoute ni dépendance, ni migration, ni changement frontend. Conserver les `.env` et `APP_KEY` existants.
+
+```bash
+cd /docker/relaxit-notify
+git status --short
+git fetch origin
+git switch codex/meta-image-header
+git pull --ff-only origin codex/meta-image-header
+```
+
+Si Git signale un conflit, conserver les modifications locales avant de poursuivre. Ajouter dans `app/.env` la variable `META_WHATSAPP_HEADER_IMAGE_URL` décrite dans [meta-whatsapp.md](meta-whatsapp.md#modèle-avec-en-tête-image), avec l'URL HTTPS publique de votre image. Puis :
+
+```bash
+docker compose exec app php artisan config:cache
+docker compose restart app worker scheduler
+docker compose exec app php artisan relaxit:whatsapp-status
+```
+
+Le diagnostic est local. Valider ensuite avec un nouveau rendez-vous fictif, la réception de l'image et du texte, puis les statuts de lecture. En cas de retour à la révision précédente, un modèle avec en-tête image restera incompatible ; suspendre les envois avant ce retour.
+
 ## Mise à jour depuis le jalon déjà installé
 
 Le compte Super Admin, Globale Santé et les accès existants sont conservés. Ce jalon ajoute la table de réception des webhooks et les dates de livraison à `notifications` et inclut sa création si nécessaire ; les migrations des clés API et du journal sont aussi incluses si elles ne sont pas encore appliquées. Les dépendances PHP/JS sont identiques au jalon précédent ; reconstruire les assets est nécessaire. Le seeder et `relaxit:bootstrap` restent réexécutables : un administrateur déjà présent n’est pas modifié. Conserver les `.env` et `APP_KEY` ; ajouter uniquement les nouvelles variables documentées.
