@@ -306,6 +306,48 @@ class MetaWhatsAppTest extends TestCase
         }
     }
 
+    public function test_additional_approved_template_is_sent_by_its_own_name(): void
+    {
+        config(['meta_whatsapp.additional_templates' => ['appointment_changed', 'appointment_cancelled', 'appointment_reminder_24h']]);
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.changed']]], 200)]);
+        $notification = $this->notification(['template' => 'appointment_changed']);
+        (new PrepareNotification($notification->id))->handle();
+        Http::assertSent(fn ($request) => $request['template']['name'] === 'appointment_changed'
+            && $request['template']['language']['code'] === 'fr'
+            && $request['template']['components'][0]['parameters'][0]['text'] === '20 octobre');
+        $this->assertSame('submitted', $notification->fresh()->status);
+    }
+
+    public function test_extra_templates_cannot_bypass_variable_or_recipient_restrictions(): void
+    {
+        config(['meta_whatsapp.additional_templates' => ['appointment_changed']]);
+        $notification = $this->notification(['template' => 'appointment_changed', 'variables' => ['unexpected' => 'value']]);
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('whatsapp_template_mismatch', $notification->fresh()->error_code);
+        $notification->refresh();
+        $notification->status = 'pending';
+        $notification->variables = ['name' => 'Example', 'date' => '20 octobre'];
+        $notification->recipient = '+221770000002';
+        $notification->save();
+        (new PrepareNotification($notification->id))->handle();
+        $this->assertSame('outside_whatsapp_pilot', $notification->fresh()->error_code);
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_additional_template_list_blocks_sending(): void
+    {
+        $notification = $this->notification();
+        foreach (['not-an-array', ['Uppercase'], [['nested']], ['appointment_reminder'], ['changed', 'changed'], array_fill(0, 11, 'changed')] as $templates) {
+            config(['meta_whatsapp.additional_templates' => $templates]);
+            $notification->refresh();
+            $notification->status = 'pending';
+            $notification->save();
+            (new PrepareNotification($notification->id))->handle();
+            $this->assertSame('whatsapp_config_invalid', $notification->fresh()->error_code);
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_readiness_command_does_not_reveal_secrets_or_send_requests(): void
     {
         $this->artisan('relaxit:whatsapp-status')->assertSuccessful();

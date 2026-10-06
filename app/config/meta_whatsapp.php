@@ -16,6 +16,7 @@ return [
     'recipient' => env('META_WHATSAPP_TEST_RECIPIENT'),
     'enabled_after' => env('META_WHATSAPP_ENABLED_AFTER'),
     'template' => env('META_WHATSAPP_TEMPLATE'),
+    'additional_templates' => array_values(array_filter(array_map('trim', explode(',', (string) env('META_WHATSAPP_ADDITIONAL_TEMPLATES', ''))))),
     'language' => env('META_WHATSAPP_LANGUAGE', 'en_US'),
     'header_image_url' => env('META_WHATSAPP_HEADER_IMAGE_URL'),
     'body_variables' => array_values(array_filter(array_map('trim', explode(',', (string) env('META_WHATSAPP_BODY_VARIABLES', ''))))),

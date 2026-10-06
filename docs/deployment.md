@@ -1,5 +1,33 @@
 # Déployer RelaxIT Notify — authentification, clés API, audit et notifications
 
+## Préparer plusieurs modèles de rendez-vous
+
+La branche `codex/appointment-lifecycle-templates` inclut le plafond local et le mode production précédents. Elle ajoute une liste explicite de modèles supplémentaires ; aucune migration, dépendance ou compilation frontend n'est nécessaire. Elle ne modifie pas le connecteur Dolimed et n'active pas les modifications, annulations ou rappels automatiquement.
+
+```bash
+cd /docker/relaxit-notify
+git status --short
+git fetch origin
+docker compose stop worker scheduler
+git switch codex/appointment-lifecycle-templates
+git pull --ff-only origin codex/appointment-lifecycle-templates
+```
+
+Conserver la configuration existante. Laisser `META_WHATSAPP_ADDITIONAL_TEMPLATES` vide tant que les nouveaux modèles ne sont pas approuvés. La configuration détaillée et les textes proposés figurent dans [meta-whatsapp.md](meta-whatsapp.md#préparation-des-modifications-annulations-et-rappels).
+
+```bash
+docker compose exec app php artisan config:cache
+docker compose exec app php artisan relaxit:whatsapp-status
+```
+
+Après diagnostic réussi :
+
+```bash
+docker compose restart app worker scheduler web
+```
+
+Le redémarrage de `web` rafraîchit sa résolution de l'adresse de l'application, pour éviter le 502 déjà rencontré après redémarrage. Si Git signale un conflit, ne pas forcer. Le modèle principal et les anciennes demandes restent inchangés. Déployer ce préalable avant d'activer `lifecycle_enabled` dans Dolimed Notif 0.3. Le [guide du connecteur](https://github.com/dioufyfire/dolimed_notif/blob/codex/appointment-lifecycle/README.md) décrit sa migration et la recette des modifications, suppressions et rappels à 24 h. Ne pas changer la date d'activation existante lors de cet ajout de modèles.
+
 ## Ouverture aux patients — mode production contrôlé
 
 La branche `codex/whatsapp-production-guardrails` inclut les jalons précédents. Cette mise à jour ne demande ni migration, ni nouvelle dépendance, ni compilation frontend. Elle utilise PostgreSQL pour sérialiser le compteur d'envoi. Le mode pilote reste le défaut : récupérer le code seul n'ouvre pas les destinataires.
