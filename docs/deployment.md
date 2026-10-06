@@ -26,7 +26,7 @@ Après diagnostic réussi :
 docker compose restart app worker scheduler web
 ```
 
-Le redémarrage de `web` rafraîchit sa résolution de l'adresse de l'application, pour éviter le 502 déjà rencontré après redémarrage. Si Git signale un conflit, ne pas forcer. Le modèle principal et les anciennes demandes restent inchangés. Ce préalable peut attendre le déploiement du prochain connecteur ; il n'est pas urgent de l'installer seul.
+Le redémarrage de `web` rafraîchit sa résolution de l'adresse de l'application, pour éviter le 502 déjà rencontré après redémarrage. Si Git signale un conflit, ne pas forcer. Le modèle principal et les anciennes demandes restent inchangés. Déployer ce préalable avant d'activer `lifecycle_enabled` dans Dolimed Notif 0.3. Le [guide du connecteur](https://github.com/dioufyfire/dolimed_notif/blob/codex/appointment-lifecycle/README.md) décrit sa migration et la recette des modifications, suppressions et rappels à 24 h. Ne pas changer la date d'activation existante lors de cet ajout de modèles.
 
 ## Ouverture aux patients — mode production contrôlé
 

@@ -4,7 +4,7 @@ Le mode `pilot`, conservé par défaut, limite les envois à un client, un desti
 
 ## Préparation des modifications, annulations et rappels
 
-La branche `codex/appointment-lifecycle-templates` permet d'autoriser plusieurs modèles approuvés. Elle ne crée pas encore les nouveaux événements dans Dolimed : les règles d'annulation et l'horaire des rappels doivent être arrêtés avant la mise à jour du connecteur. La confirmation existante reste le modèle principal.
+La branche `codex/appointment-lifecycle-templates` permet d'autoriser plusieurs modèles approuvés. Le connecteur Dolimed Notif 0.3, branche `codex/appointment-lifecycle`, ajoute les modifications de dates, l'annulation par suppression de l'événement et le rappel 24 heures avant. Voir son [guide de mise à jour](https://github.com/dioufyfire/dolimed_notif/blob/codex/appointment-lifecycle/README.md). La confirmation existante reste le modèle principal.
 
 Créer les modèles suivants dans le même compte WhatsApp que la confirmation, en français (`fr`), avec un **en-tête IMAGE** identique dans sa structure et trois paramètres positionnels dans le corps : `{{1}}` nom, `{{2}}` date, `{{3}}` heure. Chaque envoi utilisera l'URL d'image déjà configurée dans RelaxIT. La catégorie proposée est Utilitaire, sous réserve de validation Meta.
 
@@ -42,7 +42,7 @@ META_WHATSAPP_ADDITIONAL_TEMPLATES=globale_sante_modification_rdv,globale_sante_
 
 La variable vide conserve le comportement actuel. Au maximum dix noms supplémentaires distincts sont acceptés, sans répéter le modèle principal. Chaque notification utilise son propre champ `template` ; les modèles partagent `META_WHATSAPP_LANGUAGE`, `META_WHATSAPP_BODY_VARIABLES` et `META_WHATSAPP_HEADER_IMAGE_URL`. Un modèle sans image ou avec d'autres paramètres n'est pas compatible avec ce réglage commun. Les contrôles de client, d'application, de destinataire en pilote et le plafond local restent identiques. Le diagnostic local ne vérifie pas l'approbation chez Meta.
 
-Ne pas remplacer le modèle de confirmation dans Dolimed par un modèle d'annulation : la version actuelle du module ne produit que des confirmations. La nouvelle liste RelaxIT prépare le raccordement du prochain connecteur ; elle ne déclenche aucun message à elle seule.
+Ne pas remplacer le modèle de confirmation dans Dolimed par un modèle d'annulation : les quatre types doivent conserver leurs noms distincts. Activer `lifecycle_enabled` dans Dolimed 0.3 seulement après déploiement de RelaxIT et approbation des modèles. La liste RelaxIT ne déclenche aucun message à elle seule.
 
 ## Ouverture aux patients de Globale Santé
 
