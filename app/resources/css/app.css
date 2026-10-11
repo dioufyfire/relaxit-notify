@@ -992,3 +992,17 @@ input[aria-invalid="true"] {
         flex-direction: column;
     }
 }
+
+.operations-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.operations-section { margin-top: 24px; }
+.operations-section > p { margin-top: 16px; }
+.operations-statuses { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 24px 0; }
+.operations-status { border: 1px solid #d4dfd9; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.operations-status:hover { background: #edf5f1; }
+.operations-status strong { font-size: 30px; }
+.operations-warning { background: #fff4dc; color: #674809; border-radius: 8px; padding: 14px; }
+.operations-detail { align-self: flex-start; flex-shrink: 0; }
+.quota-value { font-size: 20px; }
+.quota-progress { width: 100%; height: 16px; margin-top: 18px; accent-color: #007c70; }
+@media (max-width: 1000px) { .operations-metrics, .operations-statuses { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .operations-metrics, .operations-statuses { grid-template-columns: 1fr; } }
