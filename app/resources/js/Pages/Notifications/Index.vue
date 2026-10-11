@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link, router } from "@inertiajs/vue3";
+import { notificationLabels as labels, errorHint } from "../../notificationLabels";
 import AppLayout from "../../Layouts/AppLayout.vue";
 defineProps({
     notifications: Object,
@@ -7,21 +8,8 @@ defineProps({
     filters: Object,
     indexUrl: String,
     whatsappPilotEnabled: Boolean,
+    whatsappMode: String,
 });
-const labels = {
-    pending: "À traiter",
-    scheduled: "Planifiée",
-    queued: "Traitement en attente",
-    awaiting_provider: "En attente du fournisseur",
-    blocked: "Bloquée",
-    sending: "Envoi en cours",
-    submitted: "Acceptée par Meta",
-    failed: "Échec WhatsApp",
-    sent: "Envoyée",
-    delivered: "Livrée",
-    read: "Lue",
-    delivery_unknown: "Résultat à vérifier",
-};
 const date = (value) =>
     value ? new Date(value).toLocaleString("fr-FR") : "Dès que possible";
 </script>
@@ -48,9 +36,12 @@ const date = (value) =>
         <div class="notice">
             {{
                 whatsappPilotEnabled
-                    ? "Pilote WhatsApp activé pour le client, le destinataire et le modèle configurés. « Acceptée par Meta » ne confirme pas la livraison sur le téléphone."
+                    ? (whatsappMode === "production" ? "Envois WhatsApp activés en mode production. " : "Envois WhatsApp activés en mode pilote. ") + "« Acceptée par Meta » ne confirme pas la livraison sur le téléphone."
                     : "Les envois WhatsApp sont désactivés. Les demandes restent enregistrées et préparées."
             }}
+        </div>
+        <div v-if="filters.reference" class="notice notification-reference">
+            Référence recherchée : {{ filters.reference }} · <Link :href="indexUrl">Revenir à tout l’historique →</Link>
         </div>
         <section class="panel">
             <div class="section-heading notification-filter">
@@ -84,14 +75,14 @@ const date = (value) =>
             <div v-if="!notifications.data.length" class="notification-empty">
                 <h3>
                     {{
-                        filters.status
+                        (filters.status || filters.reference)
                             ? "Aucune demande dans cet état."
                             : "Votre première notification apparaîtra ici."
                     }}
                 </h3>
                 <p class="muted">
                     {{
-                        filters.status
+                        (filters.status || filters.reference)
                             ? "Essayez un autre filtre."
                             : "Les demandes transmises par votre application seront rattachées à ce client."
                     }}
@@ -107,6 +98,7 @@ const date = (value) =>
                         labels[notification.status] ?? notification.status
                     }}</span>
                     <h3>{{ notification.template }}</h3>
+                    <p v-if="notification.error_code">{{ errorHint(notification.error_code) }}</p>
                     <p v-if="notification.error_code" class="muted">
                         Code de suivi : {{ notification.error_code }}
                     </p>

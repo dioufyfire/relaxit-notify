@@ -1,5 +1,27 @@
 # Déployer RelaxIT Notify — authentification, clés API, audit et notifications
 
+## Suivi quotidien des notifications
+
+La branche `codex/operations-dashboard` ajoute les compteurs du client sélectionné, les dernières erreurs et un filtre par référence. Le plafond global est réservé aux rôles RelaxIT. Aucune migration ni modification des secrets ou modèles n’est nécessaire ; la compilation frontend est obligatoire.
+
+Depuis la version des quatre événements validée, exécuter dans l’ordre et arrêter à la première erreur :
+
+```bash
+cd /docker/relaxit-notify
+git status --short
+git fetch origin
+git switch codex/operations-dashboard
+git pull --ff-only origin codex/operations-dashboard
+docker run --rm --mount "type=bind,src=$PWD/app,dst=/app" -w /app node:22-alpine sh -c 'npm ci && npm run build'
+docker compose exec app php artisan config:cache
+docker compose restart app worker scheduler
+docker compose restart web
+```
+
+Si Git refuse le changement, conserver les modifications locales avant de poursuivre. Ouvrir le tableau de bord après sélection du client et vérifier les liens vers les demandes. Les indicateurs toutes dates incluent les anciennes erreurs ; ils ne déclenchent aucun renvoi. Le compteur local de tentatives ne représente pas le quota officiel Meta.
+
+Les rappels non transmis restent visibles dans Dolimed : installer Dolimed Notif **0.3.1** pour son récapitulatif local (voir son README). Depuis 0.3.0, cette mise à jour ne demande aucune migration ou modification de configuration.
+
 ## Préparer plusieurs modèles de rendez-vous
 
 La branche `codex/appointment-lifecycle-templates` inclut le plafond local et le mode production précédents. Elle ajoute une liste explicite de modèles supplémentaires ; aucune migration, dépendance ou compilation frontend n'est nécessaire. Elle ne modifie pas le connecteur Dolimed et n'active pas les modifications, annulations ou rappels automatiquement.

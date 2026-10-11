@@ -15,15 +15,17 @@ class NotificationController extends Controller
     public function index(Request $request, Tenant $tenant): Response
     {
         Gate::authorize('view', $tenant);
-        $filters = $request->validate(['status' => ['nullable', Rule::in(Notification::STATUSES)]]);
+        $filters = $request->validate(['status' => ['nullable', Rule::in(Notification::STATUSES)], 'reference' => ['nullable', 'string', 'ulid']]);
 
         return Inertia::render('Notifications/Index', [
             'whatsappPilotEnabled' => (bool) config('meta_whatsapp.enabled'),
             'tenant' => $tenant->only('id', 'name', 'code'),
-            'filters' => ['status' => $filters['status'] ?? ''],
+            'filters' => ['status' => $filters['status'] ?? '', 'reference' => $filters['reference'] ?? ''],
+            'whatsappMode' => config('meta_whatsapp.mode', 'pilot'),
             'indexUrl' => route('notifications.index', $tenant),
             'notifications' => Notification::where('tenant_id', $tenant->id)
                 ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+                ->when($filters['reference'] ?? null, fn ($query, $reference) => $query->where('public_id', $reference))
                 ->latest('id')->paginate(20)->withQueryString()->through(fn (Notification $notification) => [
                     ...$notification->publicData(),
                     'recipient_masked' => '•••• '.substr($notification->recipient, -4),
